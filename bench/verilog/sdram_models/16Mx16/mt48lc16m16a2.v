@@ -212,9 +212,11 @@ endtask
         @ (posedge Clk) begin
             Sys_clk = CkeZ;
             CkeZ = Cke;
+
             if (Cke == 1'b0 && (Data_in_enable == 1'b1 || Data_out_enable == 1'b1)) begin
                 $display ("at time %t ERROR: Illegal power down or self refresh.  Please make sure data bus is idle.", $time);
             end
+
         end
         @ (negedge Clk) begin
             Sys_clk = 1'b0;

@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: tests.v,v 1.5 2001-11-13 00:45:19 rudi Exp $
+//  $Id: tests.v,v 1.6 2001-11-29 02:17:36 rudi Exp $
 //
-//  $Date: 2001-11-13 00:45:19 $
-//  $Revision: 1.5 $
+//  $Date: 2001-11-29 02:17:36 $
+//  $Revision: 1.6 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.5  2001/11/13 00:45:19  rudi
+//
+//               Just minor test bench update, syncing all the files.
+//
 //               Revision 1.4  2001/11/11 01:52:03  rudi
 //
 //               Minor fixes to testbench ...
@@ -230,7 +234,7 @@ endcase
 
 size = 4;
 del = 1;
-mode = 0;
+mode = 2;
 write = 0;
 //force sdram0.Debug = 1;
 
@@ -380,12 +384,12 @@ endcase
 case(quick)
  0: del_max = 16;
  1: del_max = 8;
- 2: del_max = 4;
+ 2: del_max = 6;
 endcase
 
 size = 4;
-del = 1;
-mode = 9;
+del = 0;
+mode = 2;
 write = 0;
 //force sdram0.Debug = 1;
 
@@ -531,12 +535,12 @@ endcase
 case(quick)
  0: del_max = 16;
  1: del_max = 8;
- 2: del_max = 4;
+ 2: del_max = 6;
 endcase
 
 size = 1;
-del = 0;
-mode = 19;
+del = 2;
+mode = 16;
 read = 1;
 //force sdram0.Debug = 1;
 
@@ -584,7 +588,7 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
    begin
 	m0.mem_fill;
 
-	if(verbose)	$display("Mode: %b, Size: %0d, Delay: %0d", mode,  size, del);
+	if(verbose)	$display("Mode: %b, Size: %0d, Delay: %0d (%t)", mode,  size, del, $time);
 
 	m0.wb_wr_mult(`MEM_BASE +        0, 4'hf, del, size);
 	if(read)	m0.wb_rd_mult(`MEM_BASE +        0, 4'hf, del, size);
@@ -1340,8 +1344,8 @@ begin
 m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0421 | (bas[0]<<9));
 
 size = 2;
-del = 0;
-mode = 8;
+del = 3;
+mode = 0;
 write = 1;
 //force sdram0.Debug = 1;
 
@@ -1388,6 +1392,7 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 	if(verbose)	$display("BAS: %0d, Mode: %b, Size: %0d, Delay: %0d",
 				bas, mode,  size, del);
 
+//$display("Accessing Bank 0");
 	if(write)
 	m0.wb_wr_mult(`MEM_BASE + (page_size*0*4) + size*0*4, 4'hf, del, size);
 	m0.wb_rd_mult(`MEM_BASE + (page_size*0*4) + size*0*4, 4'hf, del, size);
@@ -1395,6 +1400,7 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 	m0.wb_wr_mult(`MEM_BASE + (page_size*0*4) + size*1*4, 4'hf, del, size);
 	m0.wb_rd_mult(`MEM_BASE + (page_size*0*4) + size*1*4, 4'hf, del, size);
 
+//$display("Accessing Bank 1");
 	if(write)
 	m0.wb_wr_mult(`MEM_BASE + (page_size*1*4) + size*2*4, 4'hf, del, size);
 	m0.wb_rd_mult(`MEM_BASE + (page_size*1*4) + size*2*4, 4'hf, del, size);
@@ -1402,6 +1408,7 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 	m0.wb_wr_mult(`MEM_BASE + (page_size*1*4) + size*3*4, 4'hf, del, size);
 	m0.wb_rd_mult(`MEM_BASE + (page_size*1*4) + size*3*4, 4'hf, del, size);
 
+//$display("Accessing Bank 2");
 	if(write)
 	m0.wb_wr_mult(`MEM_BASE + (page_size*2*4) + size*4*4, 4'hf, del, size);
 	m0.wb_rd_mult(`MEM_BASE + (page_size*2*4) + size*4*4, 4'hf, del, size);
@@ -1409,6 +1416,7 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 	m0.wb_wr_mult(`MEM_BASE + (page_size*2*4) + size*5*4, 4'hf, del, size);
 	m0.wb_rd_mult(`MEM_BASE + (page_size*2*4) + size*5*4, 4'hf, del, size);
 
+//$display("Accessing Bank 3");
 	if(write)
 	m0.wb_wr_mult(`MEM_BASE + (page_size*3*4) + size*6*4, 4'hf, del, size);
 	m0.wb_rd_mult(`MEM_BASE + (page_size*3*4) + size*6*4, 4'hf, del, size);
@@ -1512,12 +1520,12 @@ endcase
 case(quick)
  0: del_max = 16;
  1: del_max = 8;
- 2: del_max = 4;
+ 2: del_max = 8;
 endcase
 
 size = 1;
-del = 0;
-mode = 8;
+del = 3;
+mode = 4;
 read = 1;
 
 for(mode=0;mode<20;mode=mode+1)
@@ -1720,7 +1728,7 @@ m0.wb_wr1(`REG_BASE + `CSC2,	4'hf, 32'h0040_0421 | (bas[0]<<9));
 
 size = 2;
 del = 0;
-mode = 8;
+mode = 4;
 write = 1;
 if(0)
    begin
@@ -2034,8 +2042,8 @@ case(quick)
 endcase
 
 size = 5;
-del = 1;
-mode = 6;
+del = 0;
+mode = 0;
 read = 1;
 
 if(0)
@@ -2238,6 +2246,296 @@ endtask
 `endif
 
 
+task	rmw_cross1;
+input		quick;
+
+integer		quick;
+integer		x,s,n,m,adr;
+integer		del, size;
+reg	[7:0]	mode, a_mode;
+reg	[2:0]	bs;
+integer		sz_inc;
+integer		sz_max, del_max;
+integer		read;
+reg	[2:0]	bas;
+reg	[31:0]	data, exp;
+integer		page_size;
+integer		cycle;
+
+begin
+$display("\n\n");
+$display("*****************************************************");
+$display("*** RMW CS Cross Test 1 ...                       ***");
+$display("*****************************************************\n");
+
+page_size = 256; // 64 mbit x 32 SDRAM
+
+	m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
+	m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
+
+	m0.wb_wr1(`REG_BASE + `TMS3,	4'hf, 32'hffff_f40c);
+
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
+					1'd0,	// Wr. Burst Len (1=Single)
+					2'd0,	// Op Mode
+					3'd2,	// CL
+					1'b0,	// Burst Type (0=Seq;1=Inter)
+					3'd3	// Burst Length
+					});
+
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821);
+
+case(quick)
+ 0: sz_max = 32;
+ 1: sz_max = 16;
+ 2: sz_max = 8;
+endcase
+
+case(quick)
+ 0: del_max = 16;
+ 1: del_max = 8;
+ 2: del_max = 4;
+endcase
+
+size = 16;
+del = 0;
+mode = 4;
+a_mode = 0;
+read = 1;
+write = 1;
+cycle = 1;
+
+for(cycle=0;cycle<7;cycle = cycle + 1)
+for(mode=0;mode<19;mode=mode+1)
+for(a_mode=0;a_mode<3;a_mode=a_mode+1)
+begin
+
+repeat(1)	@(posedge clk);
+
+	sdram0.mem_fill(1024);
+
+	case(mode[4:2])
+	   0: bs = 0;
+	   1: bs = 1;
+	   2: bs = 2;
+	   3: bs = 3;
+	   4: bs = 7;
+	endcase
+	
+	case(mode[4:2])
+	   0: sz_inc = 1;
+	   1: sz_inc = 2;
+	   2: sz_inc = 4;
+	   3: sz_inc = 8;
+	   4: sz_inc = 1;
+	endcase
+
+
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
+					1'd0+mode[1],	// Wr. Burst Len (1=Single)
+					2'd0,		// Op Mode
+					3'd2+mode[0],	// CL
+					1'b0,		// Burst Type (0=Seq;1=Inter)
+					3'd0+bs		// Burst Length
+					});
+
+case(a_mode)
+   0:	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0025);	// 32 bit bus
+   1:	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0005);	// 8 bit bus
+   2:	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0015);	// 16 bit bus
+endcase
+
+repeat(10)	@(posedge clk);
+if(!verbose)	$display("Mode: %b", mode);
+
+for(del=0;del<del_max;del=del+1)
+for(size=sz_inc;size<sz_max;size=size+sz_inc)
+   begin
+	m0.mem_fill;
+	for(n=0;n<1024;n=n+1)
+		m0.wr_mem[n] = {n[15:0],n[15:0]};
+
+	if(verbose)	$display("Mode: %0d, A_mode: %0d, Size: %0d, Delay: %0d, Cyc. Delay: %0d", mode, a_mode,  size, del, cycle);
+
+	repeat(cycle)	@(posedge clk);
+	m0.wb_rmw2(`MEM_BASE3 + size*0*4,
+		`MEM_BASE + (page_size*0*4) + size*0*4, 4'hf, del, size, size);
+
+	repeat(cycle)	@(posedge clk);
+	m0.wb_rmw2(`MEM_BASE3 + size*1*4,
+		`MEM_BASE + (page_size*0*4) + size*1*4, 4'hf, del, size, size);
+
+	repeat(cycle)	@(posedge clk);
+	m0.wb_rmw2(`MEM_BASE3 + size*2*4,
+		`MEM_BASE + (page_size*1*4) + size*2*4, 4'hf, del, size, size);
+
+	repeat(cycle)	@(posedge clk);
+	m0.wb_rmw2(`MEM_BASE3 + size*3*4,
+		`MEM_BASE + (page_size*1*4) + size*3*4, 4'hf, del, size, size);
+
+	repeat(cycle)	@(posedge clk);
+	m0.wb_rmw2(`MEM_BASE3 + size*4*4,
+		`MEM_BASE + (page_size*2*4) + size*4*4, 4'hf, del, size, size);
+
+	repeat(cycle)	@(posedge clk);
+	m0.wb_rmw2(`MEM_BASE3 + size*5*4,
+		`MEM_BASE + (page_size*2*4) + size*5*4, 4'hf, del, size, size);
+
+	repeat(cycle)	@(posedge clk);
+	m0.wb_rmw2(`MEM_BASE3 + size*6*4,
+		`MEM_BASE + (page_size*3*4) + size*6*4, 4'hf, del, size, size);
+
+	repeat(cycle)	@(posedge clk);
+	m0.wb_rmw2(`MEM_BASE3 + size*7*4,
+		`MEM_BASE + (page_size*3*4) + size*7*4, 4'hf, del, size, size);
+
+
+	repeat(10)	@(posedge clk);
+
+	x = 0;
+	for(n=0;n<(size*8);n=n+1)
+	   begin
+
+		case(a_mode)
+		   0:	data = {16'hxxxx, n[15:0]};
+		   1:
+			begin
+				data[31:24] = x[7:0]+3;
+				data[23:16] = x[7:0]+2;
+				data[15:08] = x[7:0]+1;
+				data[07:00] = x[7:0]+0;
+			end
+		   2:	begin
+				data[31:16] = x[15:0]+1;
+				data[15:00] = x[15:0]+0;
+			end
+		endcase
+
+		case(a_mode)
+		   0:	x = x + 1;
+		   1:	x = x + 4;
+		   2:	x = x + 2;
+		endcase
+
+		exp = m0.rd_mem[n];
+		if(a_mode==0)	exp[31:16] = data[31:16];
+
+		if(data !== exp)
+		   begin
+			$display("ERROR: RD[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
+			n, data, exp,  $time);
+			error_cnt = error_cnt + 1;
+		   end
+
+	   end
+
+	for(m=0;m<4;m=m+1)
+	for(n=0;n<size*2;n=n+1)
+	   begin
+
+		case(m)
+		   0: data = sdram0.Bank0[n];
+		   1: data = sdram0.Bank1[n+1*size*2];
+		   2: data = sdram0.Bank2[n+2*size*2];
+		   3: data = sdram0.Bank3[n+3*size*2];
+		endcase
+
+		if((data !== m0.wr_mem[(m*size*2)+n]) | (|data === 1'bx) |
+			(|m0.wr_mem[(m*size*2)+n] === 1'bx) )
+		   begin
+			$display("ERROR: WR Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
+			(m*size*2)+n, data, m0.wr_mem[(m*size*2)+n],  $time);
+			error_cnt = error_cnt + 1;
+		   end
+	   end
+
+
+
+
+/*
+	m0.mem_fill;
+	for(n=0;n<1024;n=n+1)
+		m0.wr_mem[n] = 32'hffff_ffff;
+		
+	if(verbose)	$display("Mode: %0d, Size: %0d, Delay: %0d", mode,  size, del);
+
+	if(write)	m0.wb_wr_mult(`MEM_BASE3 + size*0*4, 4'hf, del, size);
+	if(read)	m0.wb_rd_mult(`MEM_BASE3 + size*0*4, 4'hf, del, size);
+
+	if(write)	m0.wb_wr_mult(`MEM_BASE3 + size*1*4, 4'hf, del, size);
+	if(read)	m0.wb_rd_mult(`MEM_BASE3 + size*1*4, 4'hf, del, size);
+
+	if(write)	m0.wb_wr_mult(`MEM_BASE3 + size*2*4, 4'hf, del, size);
+	if(read)	m0.wb_rd_mult(`MEM_BASE3 + size*2*4, 4'hf, del, size);
+
+	if(write)	m0.wb_wr_mult(`MEM_BASE3 + size*3*4, 4'hf, del, size);
+	if(read)	m0.wb_rd_mult(`MEM_BASE3 + size*3*4, 4'hf, del, size);
+
+	repeat(10)	@(posedge clk);
+
+	x = 0;
+	for(n=0;n<(size*4);n=n+1)
+	   begin
+
+		case(mode)
+		   0:	data = {16'hxxxx, n[15:0]};
+		   1:
+			begin
+				data[31:24] = x[7:0]+3;
+				data[23:16] = x[7:0]+2;
+				data[15:08] = x[7:0]+1;
+				data[07:00] = x[7:0]+0;
+			end
+		   2:	begin
+				data[31:16] = x[15:0]+1;
+				data[15:00] = x[15:0]+0;
+			end
+		endcase
+
+		case(mode)
+		   0:	x = x + 1;
+		   1:	x = x + 4;
+		   2:	x = x + 2;
+		endcase
+
+		exp = m0.rd_mem[n];
+		if(mode==0)	exp[31:16] = data[31:16];
+
+		if(data !== exp)
+		   begin
+			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
+			n, data, exp,  $time);
+			error_cnt = error_cnt + 1;
+		   end
+
+	   end
+*/
+
+   end
+
+end
+
+show_errors;
+$display("*****************************************************");
+$display("*** Test DONE ...                                 ***");
+$display("*****************************************************\n\n");
+
+end
+endtask
+
+
 task	asc_rdwr1;
 input		quick;
 
@@ -2261,7 +2559,7 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 	m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-	m0.wb_wr1(`REG_BASE + `TMS3,	4'hf, 32'hffff_f40a);
+	m0.wb_wr1(`REG_BASE + `TMS3,	4'hf, 32'hffff_f40b);
 
 case(quick)
  0: sz_max = 32;
@@ -2276,7 +2574,7 @@ case(quick)
 endcase
 
 size = 16;
-del = 4;
+del = 0;
 mode = 0;
 read = 1;
 write = 1;
@@ -2297,8 +2595,8 @@ endcase
 repeat(10)	@(posedge clk);
 if(!verbose)	$display("Mode: %b", mode);
 
-//for(del=0;del<del_max;del=del+1)
-//for(size=1;size<sz_max;size=size+1)
+for(del=0;del<del_max;del=del+1)
+for(size=1;size<sz_max;size=size+1)
    begin
 	m0.mem_fill;
 	for(n=0;n<1024;n=n+1)
@@ -2830,7 +3128,7 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 	m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-	m0.wb_wr1(`REG_BASE + `TMS5,	4'hf, 32'hf03f_4104);
+	m0.wb_wr1(`REG_BASE + `TMS5,	4'hf, 32'hf03f_4105);
    	m0.wb_wr1(`REG_BASE + `CSC5,	4'hf, 32'h00a0_0027);
 
 
@@ -2955,14 +3253,15 @@ case(quick)
 endcase
 
 size = 4;
-del = 4;
+del = 1;
 mode = 0;
 read = 1;
 //force sdram0.Debug = 1;
 
 for(mode=0;mode<20;mode=mode+1)
 begin
-	sdram0.mem_fill(1024);
+	//sdram0.mem_fill(1024);
+	fill_mem(1024);
 
 	case(mode[4:2])
 	   0: bs = 0;
@@ -3152,6 +3451,7 @@ reg	[31:0]	mem0[0:1024];
 reg	[31:0]	mem1[0:1024];
 reg	[31:0]	mem2[0:1024];
 reg	[31:0]	mem3[0:1024];
+integer		cycle;
 
 begin
 
@@ -3165,14 +3465,14 @@ page_size = 256; // 64 mbit x 32 SDRAM
 
 case(quick)
  0: sz_max = 32;
- 1: sz_max = 32;
+ 1: sz_max = 16;
  2: sz_max = 16;
 endcase
 
 case(quick)
  0: del_max = 16;
  1: del_max = 8;
- 2: del_max = 4;
+ 2: del_max = 8;
 endcase
 
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
@@ -3193,13 +3493,15 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 					});
 
 kro = 1;
+cycle=3;
+for(cycle=0;cycle<8;cycle=cycle+1)
 for(kro=0;kro<2;kro=kro+1)	// Don't Need this for this test
 begin
 m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (kro[0]<<10));
 
 size = 2;
-del = 0;
-mode = 8;
+del = 5;
+mode = 2;
 
 //force sdram0.Debug = 1;
 
@@ -3238,7 +3540,7 @@ begin
 
 repeat(50)	@(posedge clk);
 
-if(!verbose)	$display("KRO: %0d, Mode: %b", kro, mode);
+if(!verbose)	$display("KRO: %0d, Mode: %b, Cyc. Delay: %0d", kro, mode, cycle);
 
 for(del=0;del<del_max;del=del+1)
 for(size=sz_inc;size<sz_max;size=size+sz_inc)
@@ -3254,21 +3556,30 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 		   3: mem3[n] = sdram0.Bank3[n+3*size*2];
 		endcase
 
-	if(verbose)	$display("KRO: %0d, Mode: %b, Size: %0d, Delay: %0d",
-				kro, mode,  size, del);
+	if(verbose)	$display("KRO: %0d, Mode: %b, Size: %0d, Delay: %0d, Cyc. Delay: %0d (%t)",
+				kro, mode,  size, del, cycle, $time);
 
+	repeat(cycle)	@(posedge clk);
 	m0.wb_rmw(`MEM_BASE + (page_size*0*4) + size*0*4, 4'hf, del, size, size);
+	repeat(cycle)	@(posedge clk);
 	m0.wb_rmw(`MEM_BASE + (page_size*0*4) + size*1*4, 4'hf, del, size, size);
 
+	repeat(cycle)	@(posedge clk);
 	m0.wb_rmw(`MEM_BASE + (page_size*1*4) + size*2*4, 4'hf, del, size, size);
+	repeat(cycle)	@(posedge clk);
 	m0.wb_rmw(`MEM_BASE + (page_size*1*4) + size*3*4, 4'hf, del, size, size);
 
+	repeat(cycle)	@(posedge clk);
 	m0.wb_rmw(`MEM_BASE + (page_size*2*4) + size*4*4, 4'hf, del, size, size);
+	repeat(cycle)	@(posedge clk);
 	m0.wb_rmw(`MEM_BASE + (page_size*2*4) + size*5*4, 4'hf, del, size, size);
 
+	repeat(cycle)	@(posedge clk);
 	m0.wb_rmw(`MEM_BASE + (page_size*3*4) + size*6*4, 4'hf, del, size, size);
+	repeat(cycle)	@(posedge clk);
 	m0.wb_rmw(`MEM_BASE + (page_size*3*4) + size*7*4, 4'hf, del, size, size);
 
+	repeat(cycle)	@(posedge clk);
 	for(m=0;m<4;m=m+1)
 	for(n=0;n<(size*2);n=n+1)
 	   begin
@@ -3339,6 +3650,7 @@ integer		sz_max, del_max;
 reg	[2:0]	kro;
 reg	[31:0]	data, data1;
 integer		page_size;
+integer		cycle;
 
 begin
 
@@ -3352,14 +3664,14 @@ page_size = 256; // 64 mbit x 32 SDRAM
 
 case(quick)
  0: sz_max = 32;
- 1: sz_max = 32;
- 2: sz_max = 16;
+ 1: sz_max = 16;
+ 2: sz_max = 10;
 endcase
 
 case(quick)
  0: del_max = 16;
  1: del_max = 8;
- 2: del_max = 4;
+ 2: del_max = 8;
 endcase
 
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
@@ -3379,7 +3691,8 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 					3'd3	// Burst Length
 					});
 
-kro = 0;
+kro = 1;
+for(cycle=0;cycle<8;cycle=cycle+1)
 for(kro=0;kro<2;kro=kro+1)	// Don't Need this for this test
 begin
 m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (kro[0]<<10));
@@ -3427,7 +3740,7 @@ begin
 
 repeat(50)	@(posedge clk);
 
-if(!verbose)	$display("KRO: %0d, Mode: %b", kro, mode);
+if(!verbose)	$display("KRO: %0d, Mode: %b, Cyc.Del: %0d", kro, mode, cycle);
 
 for(del=0;del<del_max;del=del+1)
 for(size=sz_inc;size<sz_max;size=size+sz_inc)
@@ -3436,21 +3749,30 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 	fill_mem(1024);
 
 
-	if(verbose)	$display("KRO: %0d, Mode: %b, Size: %0d, Delay: %0d",
-				kro, mode,  size, del);
+	if(verbose)	$display("KRO: %0d, Mode: %b, Size: %0d, Delay: %0d, Cyc.Del: %0d (%t)",
+				kro, mode,  size, del, cycle, $time);
 
+	repeat(cycle)	@(posedge clk);
 	m0.wb_wmr(`MEM_BASE + (page_size*0*4) + size*0*4, 4'hf, del, size, size);
+	repeat(cycle)	@(posedge clk);
 	m0.wb_wmr(`MEM_BASE + (page_size*0*4) + size*1*4, 4'hf, del, size, size);
 
+	repeat(cycle)	@(posedge clk);
 	m0.wb_wmr(`MEM_BASE + (page_size*1*4) + size*2*4, 4'hf, del, size, size);
+	repeat(cycle)	@(posedge clk);
 	m0.wb_wmr(`MEM_BASE + (page_size*1*4) + size*3*4, 4'hf, del, size, size);
 
+	repeat(cycle)	@(posedge clk);
 	m0.wb_wmr(`MEM_BASE + (page_size*2*4) + size*4*4, 4'hf, del, size, size);
+	repeat(cycle)	@(posedge clk);
 	m0.wb_wmr(`MEM_BASE + (page_size*2*4) + size*5*4, 4'hf, del, size, size);
 
+	repeat(cycle)	@(posedge clk);
 	m0.wb_wmr(`MEM_BASE + (page_size*3*4) + size*6*4, 4'hf, del, size, size);
+	repeat(cycle)	@(posedge clk);
 	m0.wb_wmr(`MEM_BASE + (page_size*3*4) + size*7*4, 4'hf, del, size, size);
 
+	repeat(cycle)	@(posedge clk);
 	for(n=0;n<(size*2);n=n+1)
 	   begin
 

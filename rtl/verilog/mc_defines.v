@@ -37,16 +37,19 @@
 
 //  CVS Log
 //
-//  $Id: mc_defines.v,v 1.3 2001-09-10 13:44:17 rudi Exp $
+//  $Id: mc_defines.v,v 1.4 2001-11-29 02:16:28 rudi Exp $
 //
-//  $Date: 2001-09-10 13:44:17 $
-//  $Revision: 1.3 $
+//  $Date: 2001-11-29 02:16:28 $
+//  $Revision: 1.4 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.3  2001/09/10 13:44:17  rudi
+//               *** empty log message ***
+//
 //               Revision 1.2  2001/08/10 08:16:21  rudi
 //
 //               - Changed IO names to be more clear.
@@ -62,7 +65,8 @@
 //               Revision 1.3  2001/06/12 15:19:49  rudi
 //
 //
-//               Minor changes after running lint, and a small bug fix reading csr and ba_mask registers.
+//              Minor changes after running lint, and a small bug
+//		fix reading csr and ba_mask registers.
 //
 //               Revision 1.2  2001/06/03 11:37:17  rudi
 //
@@ -108,8 +112,17 @@
 // This are the default Power-On Reset values for Chip Select
 //
 
+// This will be defined by the run script for my test bench ...
+//`define RUDIS_TB 1
+
 // Defines which chip select is used for Power On booting
-`define MC_DEF_SEL		3'h1
+
+// To run my default testbench default boot CS must be 3 !!!
+`ifdef RUDIS_TB
+`define MC_DEF_SEL		3'h3
+`else
+`define MC_DEF_SEL		3'h0
+`endif
 
 // Defines the default (reset) TMS value for the DEF_SEL chip select
 `define	MC_DEF_POR_TMS 	32'hffff_ffff
@@ -127,6 +140,14 @@
 //`define MC_HAVE_CS6	1
 //`define MC_HAVE_CS7	1
 
+
+// To run my default testbench those need to there !!!
+`ifdef RUDIS_TB
+`define MC_HAVE_CS2	1
+`define MC_HAVE_CS3	1
+`define MC_HAVE_CS4	1
+`define MC_HAVE_CS5	1
+`endif
 
 /////////////////////////////////////////////////////////////////////
 //

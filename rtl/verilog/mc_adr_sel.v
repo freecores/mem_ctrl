@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_adr_sel.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
+//  $Id: mc_adr_sel.v,v 1.3 2001-11-29 02:16:28 rudi Exp $
 //
-//  $Date: 2001-08-10 08:16:21 $
-//  $Revision: 1.2 $
+//  $Date: 2001-11-29 02:16:28 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/08/10 08:16:21  rudi
+//
+//               - Changed IO names to be more clear.
+//               - Uniquifyed define names to be core specific.
+//               - Removed "Refresh Early" configuration
+//
 //               Revision 1.1  2001/07/29 07:34:41  rudi
 //
 //
@@ -67,7 +73,7 @@
 
 `include "mc_defines.v"
 
-module mc_adr_sel(clk, csc, tms, wb_ack_o, wb_stb_i, wb_addr_i,
+module mc_adr_sel(clk, csc, tms, wb_ack_o, wb_stb_i, wb_addr_i, wb_we_i,
 		wb_write_go, wr_hold, cas_,
 		mc_addr, row_adr, bank_adr, rfr_ack,
 		cs_le, cmd_a10, row_sel, lmr_sel, next_adr, wr_cycle,
@@ -78,6 +84,7 @@ input	[31:0]	csc;
 input	[31:0]	tms;
 input		wb_ack_o, wb_stb_i;
 input	[31:0]	wb_addr_i;
+input		wb_we_i;
 input		wb_write_go;
 input		wr_hold;
 input		cas_;
@@ -139,7 +146,6 @@ assign mc_addr = rfr_ack ? {mc_addr_d[23:11], 1'b1, mc_addr_d[9:0]} : mc_addr_d;
 // Async Devices Address Latch & Counter
 //
 
-//assign asc_addr_pl1 = asc_addr + 1;
 mc_incn_r #(24) u0(	.clk(		clk		),
 			.inc_in(	acs_addr	),
 			.inc_out(	acs_addr_pl1	) );
@@ -148,10 +154,7 @@ always @(posedge clk)
 	if(wb_stb_i)	sram_addr <= #1 wb_addr_i[25:2];
 
 always @(posedge clk)
-	// *** Use same address for write and read ***
-	//if(wb_write_go)		acs_addr <= #1 wb_addr_i[25:2];
-	//else
-	if(cs_le)
+	if(cs_le | wb_we_i)
 		case(bus_width)		// synopsys full_case parallel_case
 		   `MC_BW_8:	acs_addr <= #1 wb_addr_i[23:0];
 		   `MC_BW_16:	acs_addr <= #1 wb_addr_i[24:1];

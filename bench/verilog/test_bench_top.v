@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: test_bench_top.v,v 1.5 2001-11-13 00:45:15 rudi Exp $
+//  $Id: test_bench_top.v,v 1.6 2001-11-29 02:17:36 rudi Exp $
 //
-//  $Date: 2001-11-13 00:45:15 $
-//  $Revision: 1.5 $
+//  $Date: 2001-11-29 02:17:36 $
+//  $Revision: 1.6 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.5  2001/11/13 00:45:15  rudi
+//
+//               Just minor test bench update, syncing all the files.
+//
 //               Revision 1.4  2001/11/11 01:52:02  rudi
 //
 //               Minor fixes to testbench ...
@@ -234,7 +238,8 @@ initial
 
 	// HERE IS WHERE THE TEST CASES GO ...
 
-if(1)	// Full Regression Run
+	LVL = 2;
+if(0)	// Full Regression Run
    begin
 $display(" ......................................................");
 $display(" :                                                    :");
@@ -257,6 +262,7 @@ $display(" :....................................................:");
 	sdram_wp(0);
 	sdram_rmw1(0);
 	sdram_rmw2(0);
+	rmw_cross1(0);
 
 `ifdef MULTI_SDRAM
 	sdram_rd5(0);
@@ -276,7 +282,6 @@ $display(" :....................................................:");
 `endif
 
 	scs_rdwr1(0);
-
    end
 else
 if(1)	// Quick Regression Run
@@ -286,35 +291,37 @@ $display(" :                                                    :");
 $display(" :    Short Regression Run ...                        :");
 $display(" :....................................................:");
 	verbose = 0;
+
 `ifdef FLASH
-	boot(2);
+	boot(LVL);
 `endif
 	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0000_0000);
 
-	sdram_rd1(2);
-	sdram_wr1(2);
+	sdram_rd1(LVL);
+	sdram_wr1(LVL);
 
-	sdram_rd2(2);
-	sdram_wr2(2);
+	sdram_rd2(LVL);
+	sdram_wr2(LVL);
 
-	sdram_rd3(2);
-	sdram_wr3(2);
+	sdram_rd3(LVL);
+	sdram_wr3(LVL);
 
-	sdram_rd4(2);
-	sdram_wr4(2);
+	sdram_rd4(LVL);
+	sdram_wr4(LVL);
 
-	sdram_wp(2);
-	sdram_rmw1(2);
-	sdram_rmw2(2);
+	sdram_wp(LVL);
+	sdram_rmw1(LVL);
+	sdram_rmw2(LVL);
+	rmw_cross1(LVL);
 
 `ifdef MULTI_SDRAM
-	sdram_rd5(2);
-	sdram_wr5(2);
+	sdram_rd5(LVL);
+	sdram_wr5(LVL);
 `endif
 
 
 `ifdef FLASH
-	asc_rdwr1(2);
+	asc_rdwr1(LVL);
 `endif
 
 `ifdef SRAM
@@ -324,24 +331,20 @@ $display(" :....................................................:");
 	sram_rmw1;
 	sram_rmw2;
 `endif
-	//scs_rdwr1(2);
+	scs_rdwr1(LVL);
 
 	mc_reset;
    end
 //else
-if(1)	// Suspend resume testing
+if(0)	// Suspend resume testing
 begin
 $display(" ......................................................");
 $display(" :                                                    :");
 $display(" :    Suspend Resume Testing ...                      :");
 $display(" :....................................................:");
-
 	verbose = 0;
 	done = 0;
-	LVL = 2;
-
 	fork
-
 	   begin
 
 `ifdef FLASH
@@ -355,7 +358,6 @@ $display(" :....................................................:");
 		sdram_wr1(LVL);
 		while(susp_req | suspended)	@(posedge clk);
 		sdram_rd2(LVL);
-
 
 		while(susp_req | suspended)	@(posedge clk);
 		sdram_wr2(LVL);
@@ -375,6 +377,8 @@ $display(" :....................................................:");
 		sdram_rmw1(LVL);
 		while(susp_req | suspended)	@(posedge clk);
 		sdram_rmw2(LVL);
+		while(susp_req | suspended)	@(posedge clk);
+		rmw_cross1(LVL);
 
 `ifdef MULTI_SDRAM
 		while(susp_req | suspended)	@(posedge clk);
@@ -390,7 +394,6 @@ $display(" :....................................................:");
 `endif
 
 `ifdef SRAM
-
 		while(susp_req | suspended)	@(posedge clk);
 		sram_rd1;
 		while(susp_req | suspended)	@(posedge clk);
@@ -407,9 +410,8 @@ $display(" :....................................................:");
 		while(susp_req | suspended)	@(posedge clk);
 		sram_rmw2;
 `endif
-		//while(susp_req | suspended)	@(posedge clk);
-		//scs_rdwr1(LVL);
-
+		while(susp_req | suspended)	@(posedge clk);
+		scs_rdwr1(LVL);
 
 		done = 1;
 	   end
@@ -427,7 +429,7 @@ $display(" :....................................................:");
 	mc_reset;
 end
 //else
-if(1)	// Bus Request testing
+if(0)	// Bus Request testing
 begin
 $display(" ......................................................");
 $display(" :                                                    :");
@@ -435,14 +437,14 @@ $display(" :    Bus Request/Grant Testing ...                   :");
 $display(" :....................................................:");
 	verbose = 0;
 	done = 0;
-	LVL = 2;
 	fork
-
 	   begin
 `ifdef FLASH
 		boot(LVL);
 `endif
+
 		m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0000_0000);
+
 		sdram_rd1(LVL);
 		sdram_wr1(LVL);
 		sdram_rd1(LVL);
@@ -460,6 +462,7 @@ $display(" :....................................................:");
 		sdram_wr5(LVL);
 `endif
 
+
 `ifdef FLASH
 		asc_rdwr1(LVL);
 `endif
@@ -471,8 +474,7 @@ $display(" :....................................................:");
 		sram_rmw1;
 		sram_rmw2;
 `endif
-		//scs_rdwr1(LVL);
-
+		scs_rdwr1(LVL);
 		done = 1;
 	   end
 
@@ -496,8 +498,8 @@ $display(" :    Test Debug Testing ...                          :");
 $display(" :....................................................:");
 	//verbose = 0;
 	//boot(2);
-/*
 
+/*
 `define	CSR		8'h00
 `define	POC		8'h04
 `define	BA_MASK		8'h08
@@ -514,8 +516,11 @@ $display(" :....................................................:");
 	m0.wb_wr1(`REG_BASE + `CSC1,	4'hf, 32'hffff_ffff);
 	m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, 32'hffff_ffff);
 	m0.wb_wr1(`REG_BASE + `CSC2,	4'hf, 32'hffff_ffff);
+	@(posedge clk);
 	m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, 32'hffff_ffff);
+	@(posedge clk);
 	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'hffff_ffff);
+	@(posedge clk);
 	m0.wb_wr1(`REG_BASE + `TMS3,	4'hf, 32'hffff_ffff);
 
 	m0.wb_rd1(`REG_BASE + `CSR,	4'hf, data);
@@ -528,20 +533,21 @@ $display(" :....................................................:");
 	m0.wb_rd1(`REG_BASE + `TMS2,	4'hf, data);
 	m0.wb_rd1(`REG_BASE + `CSC3,	4'hf, data);
 	m0.wb_rd1(`REG_BASE + `TMS3,	4'hf, data);
+
+
 */
-
-
 
 
 	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0000_0000);
 	//sdram_rd1(2);
 	//sdram_wr1(2);
 	//asc_rdwr1(2);
-	//sram_rd1;
-	//sram_wr1;
+//	sram_rd1;
+//	sram_wr1;
 	//sram_rmw1;
 	//sram_rmw2;
 	//sram_wp;
+	//scs_rdwr1(2);
 
 	//scs_rdwr1(2);
 
@@ -558,13 +564,33 @@ $display(" :....................................................:");
 	//sdram_bo;
 	//sdram_rd1b(2);
 
+
+
 	//sdram_rd1(2);
 	//sdram_wr1(2);
 
+
+	//sdram_rd4(2);
+	//sdram_wr4(2);
 	//sdram_rd5(2);
 	//sdram_wr5(2);
-	sdram_wr4(2);
+
+	//sdram_wp(2);
+	//sdram_rmw1(2);
+	//sdram_rmw2(2); 
+
+	
+	//rmw_cross1(2);
+
 /*
+	sram_rd1;
+	sram_wr1;
+	sram_rmw1;
+	sram_rmw2;
+	sram_wp;
+*/
+
+
 	sdram_rd1(2);
 	sdram_wr1(2);
 	sdram_rd2(2);
@@ -575,13 +601,11 @@ $display(" :....................................................:");
 	sdram_wr4(2);
 	sdram_rd5(2);
 	sdram_wr5(2);
- 
+
 	sdram_wp(2);
 	sdram_rmw1(2);
 	sdram_rmw2(2); 
-
-*/
-
+	rmw_cross1(2);
 
 
 	repeat(100)	@(posedge clk);
@@ -596,7 +620,7 @@ else
 	$display("\n\n");
 	$display("*****************************************************");
 	$display("*** Test Development ...                          ***");
-	$display("*****************************************************\n"                                                             );
+	$display("*****************************************************\n");
 
 
 	show_errors;
@@ -677,6 +701,17 @@ always @(posedge clk)
 always @(error_cnt)
 	if(error_cnt > 25)	#500 $finish;
 
+/*
+time mc_time;
+
+always @(posedge mc_clk)
+	mc_time = $time;
+
+always @(mc_cke_)
+	if($time != (mc_time+1) )
+		$display("WARNING: Unsexpected change of CKE (%t)", $time);
+*/
+	
 /////////////////////////////////////////////////////////////////////
 //
 // IO Buffers
@@ -743,7 +778,7 @@ assign  mc_oe_ = mc_c_oe ? _mc_oe_ : 1'bz;
 assign  mc_we_ = mc_c_oe ? _mc_we_ : 1'bz;
 assign  mc_cas_ = mc_c_oe ? _mc_cas_ : 1'bz;
 assign  mc_ras_ = mc_c_oe ? _mc_ras_ : 1'bz;
-assign  #1.5 mc_cke_ = mc_c_oe ? _mc_cke_ : 1'bz;
+assign  mc_cke_ = mc_c_oe ? _mc_cke_ : 1'bz;
 assign  mc_cs_ = mc_c_oe ? _mc_cs_ : 8'bz;
 assign  mc_rp_ = mc_c_oe ? _mc_rp_ : 1'bz;
 assign  mc_vpen = mc_c_oe ? _mc_vpen : 1'bz;

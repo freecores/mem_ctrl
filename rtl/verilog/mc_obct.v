@@ -38,16 +38,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_obct.v,v 1.2 2001-09-24 00:38:21 rudi Exp $
+//  $Id: mc_obct.v,v 1.3 2001-11-29 02:16:28 rudi Exp $
 //
-//  $Date: 2001-09-24 00:38:21 $
-//  $Revision: 1.2 $
+//  $Date: 2001-11-29 02:16:28 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/09/24 00:38:21  rudi
+//
+//               Changed Reset to be active high and async.
+//
 //               Revision 1.1  2001/07/29 07:34:41  rudi
 //
 //
@@ -182,10 +186,10 @@ always @(posedge clk)
 // Raw address checking
 //
 
-assign row0_same = b0_last_row == row_adr;
-assign row1_same = b1_last_row == row_adr;
-assign row2_same = b2_last_row == row_adr;
-assign row3_same = b3_last_row == row_adr;
+assign row0_same = (b0_last_row == row_adr);
+assign row1_same = (b1_last_row == row_adr);
+assign row2_same = (b2_last_row == row_adr);
+assign row3_same = (b3_last_row == row_adr);
 
 always @(bank_adr or row0_same or row1_same or row2_same or row3_same)
 	case(bank_adr)		// synopsys full_case parallel_case

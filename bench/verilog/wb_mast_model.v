@@ -13,7 +13,7 @@
 ////                                                             ////
 //// Copyright (C) 2000 Rudolf Usselmann                         ////
 ////                    rudi@asics.ws                            ////
-////                                                             ////
+///                                                             ////
 //// This source file may be used and distributed without        ////
 //// restriction provided that this copyright statement is not   ////
 //// removed from the file and that any derivative work contains ////
@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: wb_mast_model.v,v 1.2 2001-11-11 01:52:03 rudi Exp $
+//  $Id: wb_mast_model.v,v 1.3 2001-11-29 02:17:36 rudi Exp $
 //
-//  $Date: 2001-11-11 01:52:03 $
-//  $Revision: 1.2 $
+//  $Date: 2001-11-29 02:17:36 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/11/11 01:52:03  rudi
+//
+//               Minor fixes to testbench ...
+//
 //               Revision 1.1  2001/07/29 07:34:40  rudi
 //
 //
@@ -320,11 +324,29 @@ input		wcount;
 integer		delay;
 integer		rcount;
 integer		wcount;
+
+begin
+wb_rmw2(a,a,s,delay,rcount,wcount);
+end
+endtask
+
+
+task wb_rmw2;
+input	[31:0]	ra;
+input	[31:0]	wa;
+input	[3:0]	s;
+input		delay;
+input		rcount;
+input		wcount;
+
+integer		delay;
+integer		rcount;
+integer		wcount;
 integer		n;
 
 begin
 
-@(posedge clk);
+//@(posedge clk);
 #1;
 cyc = 1;
 we = 0;
@@ -333,7 +355,7 @@ repeat(delay)	@(posedge clk);
 
 for(n=0;n<rcount-1;n=n+1)
    begin
-	adr = a + (n*4);
+	adr = ra + (n*4);
 	stb = 1;
 	while(~ack & ~err)	@(posedge clk);
 	rd_mem[n + rd_cnt] = din;
@@ -352,7 +374,7 @@ for(n=0;n<rcount-1;n=n+1)
 	sel = s;
    end
 
-adr = a+(n*4);
+adr = ra+(n*4);
 stb = 1;
 @(posedge clk);
 while(~ack & ~err)	@(posedge clk);
@@ -376,7 +398,7 @@ for(n=0;n<wcount;n=n+1)
 		@(posedge clk);
 		#1;
 	   end
-	adr = a + (n*4);
+	adr = wa + (n*4);
 	dout = wr_mem[n + wr_cnt];
 	stb = 1;
 	we=1;
@@ -418,7 +440,7 @@ integer		n;
 
 begin
 
-@(posedge clk);
+//@(posedge clk);
 #1;
 cyc = 1;
 we = 1'bx;

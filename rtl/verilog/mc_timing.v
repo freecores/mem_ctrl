@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_timing.v,v 1.4 2001-09-24 00:38:21 rudi Exp $
+//  $Id: mc_timing.v,v 1.5 2001-11-29 02:16:28 rudi Exp $
 //
-//  $Date: 2001-09-24 00:38:21 $
-//  $Revision: 1.4 $
+//  $Date: 2001-11-29 02:16:28 $
+//  $Revision: 1.5 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.4  2001/09/24 00:38:21  rudi
+//
+//               Changed Reset to be active high and async.
+//
 //               Revision 1.3  2001/09/02 02:28:28  rudi
 //
 //               Many fixes for minor bugs that showed up in gate level simulations.
@@ -103,7 +107,7 @@ module mc_timing(clk, rst,
 		// Wishbone Interface
 		wb_cyc_i, wb_stb_i, wb_we_i,
 		wb_read_go, wb_write_go, wb_first, wb_wait, mem_ack,
-		err,
+		err, 
 
 		// Suspend/Resume Interface
 		susp_req, resume_req, suspended, susp_sel,
@@ -211,37 +215,33 @@ output		init_ack;
 
 // Number of states: 66
 parameter	[65:0]	// synopsys enum state
+//                   6666666555555555544444444443333333333222222222211111111110000000000
+//                   6543210987654321098765432109876543210987654321098765432109876543210
 POR		= 66'b000000000000000000000000000000000000000000000000000000000000000001,
 IDLE		= 66'b000000000000000000000000000000000000000000000000000000000000000010,
 IDLE_T		= 66'b000000000000000000000000000000000000000000000000000000000000000100,
 IDLE_T2		= 66'b000000000000000000000000000000000000000000000000000000000000001000,
 PRECHARGE	= 66'b000000000000000000000000000000000000000000000000000000000000010000,
-
 PRECHARGE_W	= 66'b000000000000000000000000000000000000000000000000000000000000100000,
 ACTIVATE	= 66'b000000000000000000000000000000000000000000000000000000000001000000,
 ACTIVATE_W	= 66'b000000000000000000000000000000000000000000000000000000000010000000,
 SD_RD_WR	= 66'b000000000000000000000000000000000000000000000000000000000100000000,
 SD_RD		= 66'b000000000000000000000000000000000000000000000000000000001000000000,
-
 SD_RD_W		= 66'b000000000000000000000000000000000000000000000000000000010000000000,
 SD_RD_LOOP	= 66'b000000000000000000000000000000000000000000000000000000100000000000,
-
 SD_RD_W2	= 66'b000000000000000000000000000000000000000000000000000001000000000000,
 SD_WR		= 66'b000000000000000000000000000000000000000000000000000010000000000000,
 SD_WR_W		= 66'b000000000000000000000000000000000000000000000000000100000000000000,
-
 BT		= 66'b000000000000000000000000000000000000000000000000001000000000000000,
 BT_W		= 66'b000000000000000000000000000000000000000000000000010000000000000000,
 REFR		= 66'b000000000000000000000000000000000000000000000000100000000000000000,
 LMR0		= 66'b000000000000000000000000000000000000000000000001000000000000000000,
 LMR1		= 66'b000000000000000000000000000000000000000000000010000000000000000000,
-
 LMR2		= 66'b000000000000000000000000000000000000000000000100000000000000000000,
 INIT0		= 66'b000000000000000000000000000000000000000000001000000000000000000000,
 INIT		= 66'b000000000000000000000000000000000000000000010000000000000000000000,
 INIT_W		= 66'b000000000000000000000000000000000000000000100000000000000000000000,
 INIT_REFR1	= 66'b000000000000000000000000000000000000000001000000000000000000000000,
-
 INIT_REFR1_W	= 66'b000000000000000000000000000000000000000010000000000000000000000000,
 INIT_LMR	= 66'b000000000000000000000000000000000000000100000000000000000000000000,
 SUSP1		= 66'b000000000000000000000000000000000000001000000000000000000000000000,
@@ -301,11 +301,11 @@ wire		kro;
 wire		cs_a;
 reg	[3:0]	cmd;
 
-reg		mem_ack;
+wire		mem_ack;
 wire		mem_ack_s;
 reg		mem_ack_d;
 reg		err_d;
-reg		err;
+wire		err;
 reg		cmd_a10;
 reg		lmr_ack;
 reg		row_sel;
@@ -337,13 +337,14 @@ wire		burst_act;
 reg		burst_act_rd;
 wire		single_write;
 
+reg		cs_le_d;
 reg		cs_le;
+reg		cs_le_r;
 
 reg		susp_req_r;
 reg		resume_req_r;
 reg		suspended;
 reg		suspended_d;
-//wire		susp_sel;
 reg		susp_sel_set, susp_sel_clr, susp_sel_r;
 
 reg	[3:0]	cmd_del;
@@ -396,6 +397,16 @@ reg		mc_c_oe_d;
 reg		mc_c_oe;
 
 reg		mc_le;
+reg		mem_ack_r;
+
+reg		rsts, rsts1;
+reg		no_wb_cycle;
+
+wire		bc_dec;
+reg		ap_en;	// Auto Precharge Enable
+reg		cmd_a10_r;
+reg		wb_stb_first;
+reg		tmr_ld_tavav;
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -404,14 +415,23 @@ reg		mc_le;
 assign mem_type  = csc[3:1];
 assign bus_width = csc[5:4];
 assign kro       = csc[10];
-assign single_write = tms[9];
+assign single_write = tms[9] | (tms[2:0] == 3'h0);
 
 ////////////////////////////////////////////////////////////////////
 //
 // Misc Logic
 //
+reg		cs_le_r1;
 
-reg		rsts, rsts1;
+always @(posedge clk)
+	cs_le_r <= #1 cs_le_r1;
+
+always @(posedge clk)
+	cs_le_r1 <= #1 cs_le;
+
+always @(posedge clk)
+	cs_le <= #1 cs_le_d;
+
 always @(posedge mc_clk)
 	rsts1 <= #1 rst;
 
@@ -450,11 +470,12 @@ assign bw16 = (bus_width == `MC_BW_16);
 assign cs_a = |cs;
 
 // Memory to Wishbone Ack
-always @(posedge clk)
-	mem_ack <= #1 (mem_ack_d | mem_ack_s) & (wb_read_go | wb_write_go);
+assign	mem_ack = (mem_ack_d | mem_ack_s) & (wb_read_go | wb_write_go);
 
 always @(posedge clk)
-	err <= #1 err_d;
+	mem_ack_r <= #1 mem_ack;
+
+assign	err = err_d;
 
 // SDRAM Command, either delayed (for writes) or straight through
 always @(posedge clk)
@@ -512,10 +533,10 @@ always @(posedge clk)
 
 // Indicates when the row_same and bank_open lookups are done
 always @(posedge clk)
-	lookup_ready1 <= #1 cs_le;
+	lookup_ready1 <= #1 cs_le & wb_stb_i;
 
 always @(posedge clk)
-	lookup_ready2 <= #1 lookup_ready1;
+	lookup_ready2 <= #1 lookup_ready1 & wb_stb_i;
 
 // Keep Track if it is a SDRAM write cycle
 always @(posedge clk or posedge rst)
@@ -533,11 +554,17 @@ always @(posedge clk or posedge rst)
 	else
 	if(!wb_cyc_i)			wb_cycle <= #1 1'b0;
 
+// Thses two signals are used to signal that no wishbone cycle is in
+// progress. Need to register them to avoid a very long combinatorial
+// path ....
+always @(posedge clk)
+	no_wb_cycle <= #1 !wb_read_go & !wb_write_go;
+
 // Track ack's for read cycles 
 always @(posedge clk or posedge rst)
 	if(rst)					ack_cnt <= #1 4'h0;
 	else
-	if(!wb_read_go & !wb_write_go)		ack_cnt <= #1 4'h0;
+	if(no_wb_cycle)				ack_cnt <= #1 4'h0;
 	else
 	if(dv & !mem_ack_s)			ack_cnt <= #1 ack_cnt + 4'h1;
 	else
@@ -545,7 +572,7 @@ always @(posedge clk or posedge rst)
 
 assign ack_cnt_is_0 = (ack_cnt==4'h0);
 
-assign mem_ack_s = (ack_cnt != 4'h0) & !wb_wait & !mem_ack & wb_read_go & !(wb_we_i & wb_stb_i);
+assign mem_ack_s = (ack_cnt != 4'h0) & !wb_wait & !mem_ack_r & wb_read_go & !(wb_we_i & wb_stb_i);
 
 // Internal Cycle Tracker
 always @(posedge clk)
@@ -578,15 +605,18 @@ always @(posedge clk or posedge rst)
 //
 // Timing Logic
 //
+wire	[3:0]	twrp;
+wire		twd_is_zero;
 wire	[31:0]	tms_x;
 
 // FIX_ME
+// Hard wire worst case or make it programmable ???
 assign tms_x = (rfr_ack | rfr_ack_r | susp_sel | !mc_c_oe) ? 32'hffff_ffff : tms;
 
 always @(posedge clk)
 	if(tmr2_ld_tscsto)	timer2 <= #1 tms_x[24:16];
 	else
-	if(tmr2_ld_tsrdv)	timer2 <= #1 9'd2;	// SSRAM RD->1st DATA VALID
+	if(tmr2_ld_tsrdv)	timer2 <= #1 9'd4;	// SSRAM RD->1st DATA VALID
 	else
 	if(tmr2_ld_twpw)	timer2 <= #1 { 5'h0, tms_x[15:12]};
 	else
@@ -600,7 +630,6 @@ always @(posedge clk)
 	else
 	if(!timer2_is_zero)	timer2 <= #1 timer2 - 9'b1;
 
-wire	twd_is_zero;
 assign twd_is_zero =  (tms_x[19:16] == 4'h0);
 
 assign timer2_is_zero = (timer2 == 9'h0);
@@ -609,9 +638,7 @@ always @(posedge clk)
 	tmr2_done <= #1 timer2_is_zero & !tmr2_ld_trdv & !tmr2_ld_trdz &
 			!tmr2_ld_twpw & !tmr2_ld_twd & !tmr2_ld_twwd & !tmr2_ld_tscsto;
 
-wire	[3:0]	twrp;
-
-assign twrp = tms_x[16:15] + tms_x[23:20];
+assign twrp = {2'h0,tms_x[16:15]} + tms_x[23:20];
 
 // SDRAM Memories timing tracker
 always @(posedge clk or posedge rst)
@@ -625,7 +652,6 @@ always @(posedge clk or posedge rst)
 	else
 	if(tmr_ld_trdv)		timer <= #1 tms_x[7:0];
 	else
-	//if(tmr_ld_twr)		timer <= #1 { 6'h0, tms_x[16:15]};
 	if(tmr_ld_twr)		timer <= #1 { 4'h0, twrp};
 	else
 	if(tmr_ld_trp)		timer <= #1 { 4'h0, tms_x[23:20]};
@@ -636,7 +662,9 @@ always @(posedge clk or posedge rst)
 	else
 	if(tmr_ld_trfc)		timer <= #1 { 4'h0, tms_x[27:24]};
 	else
-	if(tmr_ld_txsr)		timer <= #1 8'd7;
+	if(tmr_ld_tavav)	timer <= #1 8'h3;
+	else
+	if(tmr_ld_txsr)		timer <= #1 8'h7;
 	else
 	if(!timer_is_zero & !mc_le)	timer <= #1 timer - 8'b1;
 
@@ -657,22 +685,28 @@ always @(posedge clk)
 // Burst Counter
 always @(tms_x or page_size)
 	case(tms_x[2:0])		// synopsys full_case parallel_case
-	   3'h0: burst_val = 11'd1;
-	   3'h1: burst_val = 11'd2;
-	   3'h2: burst_val = 11'd4;
-	   3'h3: burst_val = 11'd8;
+	   3'h0: burst_val = 11'h1;
+	   3'h1: burst_val = 11'h2;
+	   3'h2: burst_val = 11'h4;
+	   3'h3: burst_val = 11'h8;
 	   3'h7: burst_val = page_size;
 	endcase
 
+assign bc_dec = wr_cycle ? mem_ack_d : dv;
+
 always @(posedge clk)
-	if(burst_cnt_ld_4)			burst_cnt <= #1 11'h4;
+	if(burst_cnt_ld_4)	burst_cnt <= #1 11'h4; // for SSRAM only
 	else
-	if(burst_cnt_ld)			burst_cnt <= #1 burst_val;
+	if(burst_cnt_ld)	burst_cnt <= #1 burst_val;
 	else
-	if(wr_cycle ? mem_ack_d : dv)		burst_cnt <= #1 burst_cnt - 11'h1;
+	if(bc_dec)		burst_cnt <= #1 burst_cnt - 11'h1;
 
 always @(posedge clk)
 	if(burst_cnt_ld)	burst_fp <= #1 (tms_x[2:0] == 3'h7);
+
+// Auto Precharge Enable
+always @(posedge clk)
+	if(burst_cnt_ld)	ap_en <= #1 (tms_x[2:0] == 3'h0) & !kro;
 
 assign burst_act = |burst_cnt & ( |tms_x[2:0] );
 
@@ -682,10 +716,25 @@ always @(posedge clk)
 always @(posedge clk)
 	dv_r <= #1 dv;
 
+always @(posedge clk)	// Auto Precharge Holding Register
+	cmd_a10_r <= #1 cmd_a10;
+
 ////////////////////////////////////////////////////////////////////
 //
 // Main State Machine
 //
+reg		wb_write_go_r;
+
+always @(posedge clk)
+	wb_write_go_r <= #1 wb_write_go;
+
+
+always @(posedge clk or posedge rst)
+	if(rst)			wb_stb_first <= #1 1'b0;
+	else
+	if(mem_ack)		wb_stb_first <= #1 1'b0;
+	else
+	if(wb_first & wb_stb_i)	wb_stb_first <= #1 1'b1;
 
 always @(posedge clk or posedge rst)
 `ifdef MC_POR_DELAY
@@ -695,23 +744,23 @@ always @(posedge clk or posedge rst)
 `endif
 	else		state <= #1 next_state;
 
-always @(state or cs_a or
-	twd_is_zero or wb_stb_i or
-	wb_first or wb_read_go or wb_write_go or wb_wait or mem_ack or wb_we_i or
-	ack_cnt_is_0 or wb_wait_r or cnt or wb_cycle or 
-	mem_type or kro or lookup_ready1 or lookup_ready2 or row_same or
+always @(state or cs_a or cs_le or cs_le_r or
+	twd_is_zero or wb_stb_i or wb_write_go_r or
+	wb_first or wb_read_go or wb_write_go or wb_wait or mem_ack_r or wb_we_i or
+	ack_cnt_is_0 or wb_wait_r or cnt or wb_cycle or wr_cycle or
+	mem_type or kro or lookup_ready2 or row_same or cmd_a10_r or
 	bank_open or single_write or
 	cmd_asserted or tmr_done or tmr2_done or ir_cnt_done or cmd_asserted2 or
 	burst_act or burst_act_rd or burst_fp or cke_ or cke_r or cke_o_del or
 	rfr_req or lmr_req or init_req or rfr_ack_r or susp_req_r or resume_req_r or
-	mc_br or bw8 or bw16 or dv_r or mc_adv_r or mc_ack
+	mc_br or bw8 or bw16 or dv_r or mc_adv_r or mc_ack or wb_stb_first or ap_en
 	)
    begin
 	next_state = state;	// Default keep current state
 	cnt_next = 1'b0;
 
 	cmd = `MC_CMD_NOP;
-	cmd_a10 = ~kro;
+	cmd_a10 = ap_en;
 	oe_d = 1'b0;
 	data_oe_d = 1'b0;
 	cke_d = 1'b1;
@@ -734,6 +783,7 @@ always @(state or cs_a or
 	tmr_ld_trdv = 1'b0;
 	tmr_ld_trdz = 1'b0;
 	tmr_ld_twr2 = 1'b0;
+	tmr_ld_tavav = 1'b0;
 
 	tmr2_ld_trdv = 1'b0;
 	tmr2_ld_trdz = 1'b0;
@@ -754,7 +804,7 @@ always @(state or cs_a or
 	ir_cnt_ld = 1'b0;
 
 	row_sel = 1'b0;
-	cs_le = 1'b0;
+	cs_le_d = 1'b0;
 	wr_clr = 1'b0;
 	wr_set = 1'b0;
 	wb_cycle_set = 1'b0;
@@ -781,9 +831,13 @@ always @(state or cs_a or
 `endif
 	   IDLE:
 	      begin
-		cs_le = (wb_first & wb_stb_i) | lmr_req;
+		cs_le_d = wb_stb_first | lmr_req;
 		burst_cnt_ld = 1'b1;
 		wr_clr = 1'b1;
+
+		if(mem_type == `MC_MEM_TYPE_SCS)	tmr2_ld_tscsto = 1'b1;
+		if(mem_type == `MC_MEM_TYPE_SRAM)	tmr2_ld_tsrdv = 1'b1;
+
 
 		if(rfr_req)
 		   begin
@@ -793,30 +847,30 @@ always @(state or cs_a or
 		else
 		if(init_req)
 		   begin
-			cs_le = 1'b1;
+			cs_le_d = 1'b1;
 			next_state = INIT0;
 		   end
 		else
 		if(lmr_req & lookup_ready2)
 		   begin
 			lmr_ack = 1'b1;
-			cs_le = 1'b1;
+			cs_le_d = 1'b1;
 			next_state = LMR0;
 		   end
 		else
 		if(susp_req_r & !wb_cycle)
 		   begin
-			cs_le = 1'b1;
+			cs_le_d = 1'b1;
 			susp_sel_set = 1'b1;
 			next_state = SUSP1;
 		   end
 		else
-		if(cs_a & (wb_read_go | wb_write_go) & (lookup_ready1 | wb_cycle) )
+		if(cs_a & (wb_read_go | wb_write_go) & lookup_ready2)
 		  begin
 		   wb_cycle_set = 1'b1;
 		   case(mem_type)		// synopsys full_case parallel_case
 		     `MC_MEM_TYPE_SDRAM:		// SDRAM
-			if((lookup_ready2 | wb_cycle) & !wb_wait)
+			if((lookup_ready2) & !wb_wait)
 			   begin
 				if(wb_write_go | (wb_we_i & wb_stb_i))	wr_set = 1'b1;
 				if(kro & bank_open & row_same)	next_state = SD_RD_WR;
@@ -828,21 +882,20 @@ always @(state or cs_a or
 			begin				// Async Chip Select
 				if(!wb_wait)
 				   begin
-					cs_le = 1'b1;
+					cs_le_d = 1'b1;
 					if(wb_write_go)	
 					   begin
-								data_oe_d = 1'b1;
-								next_state = ACS_WR;
+							data_oe_d = 1'b1;
+							next_state = ACS_WR;
 					   end
-					else			next_state = ACS_RD;
+					else		next_state = ACS_RD;
 				   end
 			end
 		     `MC_MEM_TYPE_SCS:
 			begin				// Sync Chip Select
 				if(!wb_wait)
 				   begin
-					tmr2_ld_tscsto = 1'b1;
-					cs_le = 1'b1;
+					cs_le_d = 1'b1;
 					if(wb_write_go)	
 					   begin
 						cmd = `MC_CMD_XWR;
@@ -863,7 +916,7 @@ always @(state or cs_a or
 			begin		// SRAM
 				if(!wb_wait)
 				   begin
-					cs_le = 1'b1;
+					cs_le_d = 1'b1;
 					if(wb_write_go)	
 					   begin
 						data_oe_d = 1'b1;
@@ -875,7 +928,6 @@ always @(state or cs_a or
 						cmd = `MC_CMD_XRD;
 						oe_d = 1'b1;
 						mc_adsc = 1'b1;
-						tmr2_ld_tsrdv = 1'b1;
 						next_state = SRAM_RD;
 					   end
 				   end
@@ -885,19 +937,28 @@ always @(state or cs_a or
 		else
 		if(mc_br)
 		   begin
-			if(!cmd_asserted2)	next_state = BG0;
+			if(!cmd_asserted2)
+			   begin
+				next_state = BG0;
+				mc_c_oe_d = 1'b0;
+			   end
 		   end
 	      end
 
 	   IDLE_T:
 	      begin
-		cs_le = (wb_first & wb_stb_i) | lmr_req;
+		cmd_a10 = cmd_a10_r;	// Hold Auto Precharge 'til cycle finishes
+		if(tmr_done & wb_cycle & !wb_wait)	cs_le_d = 1'b1;
 		if(tmr_done)	next_state = IDLE;
 	      end
 
 	   IDLE_T2:
 	      begin
-		if(tmr2_done)	next_state = IDLE;
+		if(tmr2_done & (!wb_wait | !wb_cycle) )
+		   begin
+			cs_le_d = 1'b1;
+			if(cs_le_r)	next_state = IDLE;
+		   end
 	      end
 
 		/////////////////////////////////////////
@@ -962,7 +1023,6 @@ always @(state or cs_a or
 		/////////////////////////////////////////
 		// SSRAM STATES ....
 		/////////////////////////////////////////
-
 	   SRAM_RD:
 	      begin
 		cmd = `MC_CMD_XRD;
@@ -1014,7 +1074,7 @@ always @(state or cs_a or
 		else
 		if(!wb_wait)
 		   begin
-			cs_le = 1'b1;
+			cs_le_d = 1'b1;
 			next_state = SRAM_RD;
 		   end
 	      end
@@ -1025,7 +1085,7 @@ always @(state or cs_a or
 		next_state = IDLE;
 	      end
 
-	   SRAM_WR: // 80
+	   SRAM_WR:
 	      begin
 		cmd = `MC_CMD_XWR;
 		mc_adsc = 1'b1;
@@ -1042,12 +1102,12 @@ always @(state or cs_a or
 			else		
 			   begin
 				data_oe_d = 1'b1;
-				mem_ack_d = ~mem_ack;
+				mem_ack_d = ~mem_ack_r;
 			   end
 		   end
 	      end
 
-	   SRAM_WR0: // 81
+	   SRAM_WR0:
 	      begin
 		if(wb_wait)		next_state = SRAM_WR0;
 		else
@@ -1059,12 +1119,8 @@ always @(state or cs_a or
 		else		
 		   begin
 			data_oe_d = 1'b1;
-			//mem_ack_d = ~mem_ack;
 			next_state = SRAM_WR;
 		   end
-
-		//data_oe_d = 1'b1;
-		//if(!wb_wait)	next_state = SRAM_WR;
 	      end
 
 		/////////////////////////////////////////
@@ -1089,7 +1145,6 @@ always @(state or cs_a or
 			else
 			if(bw16)		next_state = ACS_RD_8_5;
 			else			next_state = ACS_RD2A;
-			//else			next_state = ACS_RD3;
 		   end
 	      end
 
@@ -1249,7 +1304,7 @@ always @(state or cs_a or
 		   end
 	      end
 
-	   ACTIVATE:	// 4
+	   ACTIVATE:
 	      begin
 		if(!wb_wait_r)
 		   begin
@@ -1271,8 +1326,8 @@ always @(state or cs_a or
 		   begin
 			if(wb_write_go)
 			   begin
-				mem_ack_d = !mem_ack;
-				cmd_a10 = ~kro;
+				mem_ack_d = ~mem_ack_r;
+				cmd_a10 = ap_en | (single_write & !kro);
 				next_state = SD_WR;
 			   end
 			else
@@ -1280,15 +1335,15 @@ always @(state or cs_a or
 		   end
 	      end
 
-	   SD_RD_WR:	// 6
+	   SD_RD_WR:
 	      begin
 		if(wb_write_go | (wb_we_i & wb_stb_i))	wr_set = 1'b1;
 
 		if(wb_write_go & !wb_wait)
 		   begin	// Write
 			data_oe_d = 1'b1;
-			mem_ack_d = !mem_ack;
-			cmd_a10 = ~kro;
+			mem_ack_d = ~mem_ack_r;
+			cmd_a10 = ap_en | (single_write & !kro);
 			next_state = SD_WR;
 		   end
 		else
@@ -1302,32 +1357,35 @@ always @(state or cs_a or
 		   end
 	      end
 
-	   SD_WR:	// Write Command A
+	   SD_WR:	// Write Command
 	      begin	// Does the first single write
 		data_oe_d = 1'b1;
 		tmr_ld_twr = 1'b1;
 		cnt_next = ~cnt;
 		cmd = `MC_CMD_WR;
-		cmd_a10 = ~kro;
 
-		if(!cnt & wb_cycle & burst_act)	cke_d = !wb_wait;
+		cmd_a10 = ap_en | (single_write & !kro);
+
+		if(!cnt & wb_cycle & burst_act)	cke_d = ~wb_wait;
 		else				cke_d = cke_r;
 
 		if(cmd_asserted)
 		   begin
-			mem_ack_d = !mem_ack & wb_write_go & !wb_wait & wb_cycle & burst_act;
+			mem_ack_d = !mem_ack_r & wb_write_go & !wb_wait & wb_cycle & burst_act;
 
 			if(wb_cycle & !burst_act)	next_state = IDLE_T;
 			else
-			if(wb_cycle)			next_state = SD_WR_W;
+			if(wb_write_go)			next_state = SD_WR_W;
 			else
 			if(burst_act & !single_write)	next_state = BT;
+			else
+			if(!ap_en)			next_state = BT_W;
 			else				next_state = IDLE_T;
 		   end
 
 	      end
 
-	   SD_WR_W:	// B
+	   SD_WR_W:
 	      begin	// Does additional Writes or Times them
 		tmr_ld_twr = 1'b1;
 		cnt_next = ~cnt;
@@ -1335,46 +1393,48 @@ always @(state or cs_a or
 		if(single_write & wb_cycle)
 		   begin
 			cmd = `MC_CMD_WR;
-			if(burst_act)	cmd_a10 = 1'b0;
-			else		cmd_a10 = ~kro;
 		   end
+		cmd_a10 = ap_en | (single_write & !kro);
 
 		data_oe_d = 1'b1;
-		mem_ack_d = !mem_ack & wb_write_go & !wb_wait & wb_cycle & burst_act;
+		mem_ack_d = !mem_ack_r & wb_write_go & !wb_wait & wr_cycle & burst_act;
 
 		if(!cnt)	cke_d = ~wb_wait;
 		else		cke_d = cke_r;
-	
-		if(cke_r)
+
+		if( (single_write & cke_r) | (!single_write & !cnt & !wb_wait) | (!single_write & cnt & cke_r) )
 		   begin
 			if(single_write	& !wb_cycle)		next_state = IDLE_T;
 			else
-			if(burst_act & !single_write & !wb_write_go )
-								next_state = BT;
+			if(burst_act & !single_write & !wb_write_go_r)
+			   begin
+				cmd = `MC_CMD_BT;
+				next_state = BT;
+			   end
+			else
+			if(!burst_act & !ap_en)			next_state = BT_W;
 			else
 			if(!burst_act)				next_state = IDLE_T;
 			else
-			if(!wb_write_go & wb_read_go)		next_state = IDLE_T;	// Added for WMR
+			if(!wb_write_go_r & wb_read_go)		next_state = IDLE_T;	// Added for WMR
 		   end
 	      end
 
-	   SD_RD:	// Read Command 7
+	   SD_RD:	// Read Command
 	      begin
 		cmd = `MC_CMD_RD;
-		if(burst_fp)	cmd_a10 = 1'b0;
-		else		cmd_a10 = ~kro;
+		cmd_a10 = ap_en;
 		tmr_ld_tcl = 1'b1;
 		if(cmd_asserted)			next_state = SD_RD_W;
 	      end
 
-	   SD_RD_W: // 8
+	   SD_RD_W:
 	      begin
 		if(tmr_done)				next_state = SD_RD_LOOP;
 	      end
 
-	   SD_RD_LOOP: // 9
+	   SD_RD_LOOP:
 	      begin
-
 		cnt_next = ~cnt;
 
 		if(cnt & !(burst_act & !wb_cycle) & burst_act )		cke_rd = !wb_wait;
@@ -1389,39 +1449,46 @@ always @(state or cs_a or
 		if(!burst_act)				next_state = SD_RD_W2;
 	      end
 
-	   SD_RD_W2: //32
+	   SD_RD_W2:
 	      begin
-		if(wb_cycle & wb_write_go)		next_state = IDLE;
-		else
-		if(!wb_cycle | ack_cnt_is_0)		next_state = IDLE;
+		if(wb_write_go | ack_cnt_is_0)	
+		   begin
+			if(!ap_en & !kro)		next_state = BT_W;
+			else
+			if(!wb_wait & !mem_ack_r)	next_state = IDLE_T;
+		   end
 	      end
 
-	   BT:		// Burst Terminate  C
+	   BT:
 	      begin
 		cmd = `MC_CMD_BT;
 		tmr_ld_trp = 1'b1;
 		if(cmd_asserted)			next_state = BT_W;
 	      end
 
-	   BT_W:	// D
+	   BT_W:
 	      begin
-		if(kro)					next_state = IDLE;
+		cmd_a10 = cmd_a10_r;	// Hold Auto Precharge 'til cycle finishes
+
+		if(kro & tmr_done)
+		   begin
+			if(kro & !wb_wait & (wb_read_go | wb_write_go) )	cs_le_d = 1'b1;
+			next_state = IDLE;
+		   end
 		else
-		if(tmr_done & (!burst_fp | kro))	next_state = IDLE;
-		else
-		if(tmr_done & burst_fp & !kro)	// Must PRECHARGE Full Page Bursts
+		if(!kro & tmr_done)		// Must do a PRECHARGE after Burst Terminate
 		   begin
 			bank_clr = 1'b1;
 			cmd = `MC_CMD_PC;
 			cmd_a10 = `MC_SINGLE_BANK;
 			tmr_ld_trp = 1'b1;
-			if(cmd_asserted)		next_state = IDLE_T;
+			if(cmd_asserted)	next_state = IDLE_T;
 		   end
 	      end
 
 	   REFR:	// Refresh Cycle
 	      begin
-		cs_le = 1'b1;
+		cs_le_d = 1'b1;
 		cmd = `MC_CMD_ARFR;
 		tmr_ld_trfc = 1'b1;
 		rfr_ack = 1'b1;
@@ -1459,7 +1526,7 @@ always @(state or cs_a or
 
 	   INIT0:
 	      begin
-		cs_le = 1'b1;
+		cs_le_d = 1'b1;
 		next_state = INIT;
 	      end
 
@@ -1492,7 +1559,7 @@ always @(state or cs_a or
 		   end
 	      end
 
-	   INIT_REFR1_W:	// 21
+	   INIT_REFR1_W:
 	      begin
 		init_ack = 1'b1;
 		if(tmr_done)
@@ -1523,18 +1590,19 @@ always @(state or cs_a or
 	   BG1:
 	      begin	// Bus Grant
 		mc_bg = 1'b1;
-		cs_le = 1'b1;
+		cs_le_d = 1'b1;
 		mc_c_oe_d = 1'b0;
 		next_state = BG2;
 	      end
 	   BG2:
 	      begin	// Bus Grant
+		cs_le_d = 1'b1;
 		mc_bg =	!wb_read_go & !wb_write_go &
 			!rfr_req & !init_req & !lmr_req &
 			!susp_req_r;
-		tmr_ld_tcl = 1'b1;
+		tmr_ld_tavav = 1'b1;
+		mc_c_oe_d = mc_br;
 		if(!mc_br)	next_state = IDLE_T;
-		else		mc_c_oe_d = 1'b0;
 	      end
 
 		/////////////////////////////////////////

@@ -38,16 +38,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_mem_if.v,v 1.3 2001-09-24 00:38:21 rudi Exp $
+//  $Id: mc_mem_if.v,v 1.4 2001-11-29 02:16:28 rudi Exp $
 //
-//  $Date: 2001-09-24 00:38:21 $
-//  $Revision: 1.3 $
+//  $Date: 2001-11-29 02:16:28 $
+//  $Revision: 1.4 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.3  2001/09/24 00:38:21  rudi
+//
+//               Changed Reset to be active high and async.
+//
 //               Revision 1.2  2001/09/02 02:28:28  rudi
 //
 //               Many fixes for minor bugs that showed up in gate level simulations.
@@ -91,11 +95,12 @@
 module mc_mem_if(clk, rst, mc_clk, mc_br, mc_bg, 
 		mc_addr, mc_data_o, mc_dp_o, mc_data_oe,
 		mc_dqm, mc_oe_, mc_we_, mc_cas_, mc_ras_, mc_cke_, mc_cs_,
-		mc_adsc_, mc_adv_, mc_ack, mc_rp, mc_rp_d,
-		mc_br_r, mc_bg_d, mc_data_od, mc_dp_od, mc_addr_d, mc_ack_r, we_,
-		ras_, cas_, cke_, mc_adsc_d, mc_adv_d, cs_en, rfr_ack, cs_need_rfr,
-		lmr_sel, spec_req_cs, cs, data_oe, susp_sel, mc_c_oe, oe_,
-		wb_stb_i, wb_sel_i, wb_cycle, wr_cycle
+		mc_adsc_, mc_adv_, mc_ack, mc_rp, mc_c_oe, mc_c_oe_d,
+		mc_br_r, mc_bg_d, mc_data_od, mc_dp_od, mc_addr_d, mc_ack_r,
+		we_, ras_, cas_, cke_, mc_adsc_d, mc_adv_d, cs_en, rfr_ack,
+		cs_need_rfr, lmr_sel, spec_req_cs, cs, fs, data_oe, susp_sel,
+		suspended_o, oe_, wb_stb_i, wb_sel_i, wb_cycle, wr_cycle,
+		mc_data_ir, mc_data_i, mc_dp_i, mc_sts_ir, mc_sts_i, mc_zz_o
 		);
 // Memory Interface
 input		clk;
@@ -118,13 +123,17 @@ output		mc_adsc_;
 output		mc_adv_;
 input		mc_ack;
 output		mc_rp;
+output		mc_c_oe;
+output	[35:0]	mc_data_ir;
+output		mc_sts_ir;
+output		mc_zz_o;
 
 // Internal Interface
 output		mc_br_r;
 input		mc_bg_d;
 input		data_oe;
 input		susp_sel;
-input		mc_c_oe;
+input		suspended_o;
 input	[31:0]	mc_data_od;
 input	[3:0]	mc_dp_od;
 input	[23:0]	mc_addr_d;
@@ -144,9 +153,13 @@ input	[7:0]	cs_need_rfr;
 input		lmr_sel;
 input	[7:0]	spec_req_cs;
 input	[7:0]	cs;
+input		fs;
 input		mc_adsc_d;
 input		mc_adv_d;
-input		mc_rp_d;
+input		mc_c_oe_d;
+input	[31:0]	mc_data_i;
+input	[3:0]	mc_dp_i;
+input		mc_sts_i;
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -171,8 +184,11 @@ reg		mc_adv_;
 reg		mc_br_r;
 reg		mc_ack_r;
 reg		mc_rp;
+reg		mc_c_oe;
+reg		mc_zz_o;
 
-//integer	n;
+reg	[35:0]	mc_data_ir;
+reg		mc_sts_ir;
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -180,7 +196,19 @@ reg		mc_rp;
 //
 
 always @(posedge mc_clk)
-	mc_rp <= #1 mc_rp_d;
+	mc_zz_o <= #1 suspended_o;	
+
+always @(posedge mc_clk)
+	mc_sts_ir <= #1 mc_sts_i;
+
+always @(posedge mc_clk)
+	mc_data_ir <= #1 {mc_dp_i, mc_data_i};
+
+always @(posedge mc_clk)
+	mc_c_oe <= #1 mc_c_oe_d;
+
+always @(posedge mc_clk)
+	mc_rp <= #1 !suspended_o & !fs;
 
 always @(posedge mc_clk)
 	mc_br_r <= #1 mc_br;
@@ -193,7 +221,7 @@ always @(posedge mc_clk)
 
 always @(posedge mc_clk or posedge rst)
 	if(rst)		mc_data_oe <= #1 1'b0;
-	else		mc_data_oe <= #1 data_oe & !susp_sel & mc_c_oe;
+	else		mc_data_oe <= #1 data_oe & !susp_sel & mc_c_oe_d;
 
 always @(posedge mc_clk)
 	mc_data_o <= #1 mc_data_od;
@@ -227,16 +255,6 @@ always @(posedge mc_clk)
 	mc_ras_ <= #1 ras_;
 
 assign	mc_cke_ = cke_;
-
-/*	Apparently Synopsys Can't handle this ....
-always @(posedge mc_clk)
-	for(n=0;n<8;n=n+1)
-	   mc_cs_[n] <= #1 ~(cs_en & (
-				(rfr_ack | susp_sel) ? cs_need_rfr[n] :
-				lmr_sel ? spec_req_cs[n] :
-				cs[n]
-			));
-*/
 
 always @(posedge mc_clk or posedge rst)
 	if(rst)		mc_cs_[0] <= #1 1'b1;

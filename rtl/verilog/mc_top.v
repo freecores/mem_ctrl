@@ -37,16 +37,19 @@
 
 //  CVS Log
 //
-//  $Id: mc_top.v,v 1.4 2001-09-10 13:44:17 rudi Exp $
+//  $Id: mc_top.v,v 1.5 2001-11-29 02:16:28 rudi Exp $
 //
-//  $Date: 2001-09-10 13:44:17 $
-//  $Revision: 1.4 $
+//  $Date: 2001-11-29 02:16:28 $
+//  $Revision: 1.5 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.4  2001/09/10 13:44:17  rudi
+//               *** empty log message ***
+//
 //               Revision 1.3  2001/09/02 02:28:28  rudi
 //
 //               Many fixes for minor bugs that showed up in gate level simulations.
@@ -168,12 +171,9 @@ wire		wb_write_go;
 wire		wb_first;
 wire		wb_wait;
 wire		mem_ack;
-wire		mem_wb_ack_o, rf_wb_ack_o;
 
-// --------------------------------------
 // Suspend Resume Interface
 wire		susp_sel;
-reg		mc_zz_pad_o;
 
 // Register File Interconnects
 wire	[31:0]	rf_dout;
@@ -187,7 +187,6 @@ wire		cs_le;
 wire	[7:0]	cs_need_rfr;
 wire	[2:0]	ref_int;
 wire	[31:0]	mem_dout;
-wire		rf_wb_err_o;
 wire		wp_err;
 
 // Address Select Signals
@@ -216,6 +215,7 @@ wire		par_err;
 wire	[31:0]	mc_data_od;
 wire	[3:0]	mc_dp_od;
 wire	[23:0]	mc_addr_d;
+wire	[35:0]	mc_data_ir;
 
 // Refresh Counter Signals
 wire		rfr_req;
@@ -238,45 +238,23 @@ wire		cs_en;
 wire		wb_cycle, wr_cycle;
 wire	[31:0]	tms_s;
 wire	[31:0]	csc_s;
+wire		mc_c_oe_d;
 wire		mc_br_r;
 wire		mc_bg_d;
 wire		mc_adsc_d;
 wire		mc_adv_d;
 wire		mc_ack_r;
 wire		err;
-
-wire		mc_rp_d;
-
-/*
-// synopsys translate_off
-initial		// FOR RICHARD TEST BENCH ONLY ...	FIX_ME
-   begin
-  	$shm_open("waves");
-	$shm_probe("AS",mc_top,"AS");
-	$display("INFO: Signal dump enabled ...\n\n");
-	repeat(4000)	@(posedge clk_i);
-	$finish;
-   end
-// synopsys translate_on
-*/
+wire		mc_sts_i;
 
 ////////////////////////////////////////////////////////////////////
 //
 // Misc Logic
 //
 
-assign mc_rp_d = !suspended_o & !fs;
-
-always @(posedge mc_clk_i)
-	mc_zz_pad_o <= #1 suspended_o;	
-
-assign wb_err_o  = wb_cyc_i & wb_stb_i &
-		(`MC_MEM_SEL ? ((par_err & !wb_we_i) | err | wp_err) : rf_wb_err_o);
-assign wb_data_o = `MC_MEM_SEL ? mem_dout : rf_dout;
-assign wb_ack_o  = `MC_MEM_SEL ? mem_wb_ack_o : rf_wb_ack_o;
-
 assign obct_cs =	(rfr_ack | susp_sel) ? cs_need_rfr :
 			(lmr_ack | init_ack) ? spec_req_cs : cs;
+
 assign lmr_sel = lmr_ack | init_ack;
 
 assign tms_s = lmr_sel ? sp_tms : tms;
@@ -296,8 +274,7 @@ mc_rf		u0(
 		.wb_we_i(	wb_we_i		),
 		.wb_cyc_i(	wb_cyc_i	),
 		.wb_stb_i(	wb_stb_i 	),
-		.wb_ack_o(	rf_wb_ack_o	),
-		.wb_err_o(	rf_wb_err_o	),
+		.wb_ack_o(			),
 		.wp_err(	wp_err		),
 		.csc(		csc		),
 		.tms(		tms		),
@@ -305,8 +282,8 @@ mc_rf		u0(
 		.sp_csc(	sp_csc		),
 		.sp_tms(	sp_tms		),
 		.cs(		cs		),
-		.mc_data_i(	mc_data_pad_i	),
-		.mc_sts(	mc_sts_pad_i	),
+		.mc_data_i(	mc_data_ir[31:0]),
+		.mc_sts(	mc_sts_ir	),
 		.mc_vpen(	mc_vpen_pad_o 	),
 		.fs(		fs		),
 		.cs_le(		cs_le		),
@@ -325,8 +302,9 @@ mc_adr_sel	u1(
 		.csc(		csc_s		),
 		.tms(		tms_s		),
 		.wb_stb_i(	wb_stb_i 	),
-		.wb_ack_o(	mem_wb_ack_o	),
+		.wb_ack_o(	wb_ack_o	),
 		.wb_addr_i(	wb_addr_i	),
+		.wb_we_i(	wb_we_i		),
 		.wb_write_go(	wb_write_go	),
 		.wr_hold(	wr_hold		),
 		.cas_(		cas_		),
@@ -363,11 +341,15 @@ mc_dp		u3(
 		.rst(		rst_i		),
 		.csc(		csc		),
 		.wb_cyc_i(	wb_cyc_i	),
-		.mem_wb_ack_o(	mem_wb_ack_o 	),
+		.wb_stb_i(	wb_stb_i	),
+		.mem_ack(	mem_ack 	),
+		.wb_ack_o(	wb_ack_o 	),
+		.wb_we_i(	wb_we_i		),
 		.wb_data_i(	wb_data_i	),
 		.wb_data_o(	mem_dout	),
 		.wb_read_go(	wb_read_go	),
-		.mc_data_i(	mc_data_pad_i	),
+		.mc_clk(	mc_clk_i	),
+		.mc_data_del(	mc_data_ir	),
 		.mc_dp_i(	mc_dp_pad_i	),
 		.mc_data_o(	mc_data_od	),
 		.mc_dp_o(	mc_dp_od	),
@@ -418,7 +400,7 @@ mc_timing	u5(
 		.cs_en(		cs_en		),
 		.mc_adsc(	mc_adsc_d	),
 		.mc_adv(	mc_adv_d	),
-		.mc_c_oe(	mc_coe_pad_coe_o),
+		.mc_c_oe(	mc_c_oe_d	),
 		.wb_cycle(	wb_cycle	),
 		.wr_cycle(	wr_cycle	),
 		.csc(		csc_s		),
@@ -455,21 +437,26 @@ mc_wb_if	u6(
 		.wb_cyc_i(	wb_cyc_i	),
 		.wb_stb_i(	wb_stb_i 	),
 		.wb_we_i(	wb_we_i		),
-		.wb_ack_o(	mem_wb_ack_o	),
+		.wb_ack_o(	wb_ack_o	),
 		.wb_err(	wb_err_o	),
 		.wb_read_go(	wb_read_go	),
 		.wb_write_go(	wb_write_go	),
 		.wb_first(	wb_first	),
 		.wb_wait(	wb_wait		),
 		.mem_ack(	mem_ack		),
-		.wr_hold(	wr_hold		)
+		.wr_hold(	wr_hold		),
+		.err(		err		),
+		.par_err(	par_err		),
+		.wp_err(	wp_err		),
+		.wb_data_o(	wb_data_o	),
+		.mem_dout(	mem_dout	),
+		.rf_dout(	rf_dout		)
 		);
 
 mc_mem_if	u7(
 		.clk(		clk_i		),
 		.rst(		rst_i		),
 		.mc_rp(		mc_rp_pad_o_	),
-		.mc_rp_d(	mc_rp_d		),
 		.mc_clk(	mc_clk_i	),
 		.mc_br(		mc_br_pad_i	),
 		.mc_bg(		mc_bg_pad_o	),
@@ -492,6 +479,7 @@ mc_mem_if	u7(
 		.mc_dp_od(	mc_dp_od	),
 		.mc_addr_d(	mc_addr_d	),
 		.mc_ack(	mc_ack_pad_i	),
+		.mc_zz_o(	mc_zz_pad_o	),
 		.we_(		we_		),
 		.ras_(		ras_		),
 		.cas_(		cas_		),
@@ -504,15 +492,23 @@ mc_mem_if	u7(
 		.lmr_sel(	lmr_sel		),
 		.spec_req_cs(	spec_req_cs	),
 		.cs(		cs		),
+		.fs(		fs		),
 		.data_oe(	data_oe		),
 		.susp_sel(	susp_sel	),
+		.suspended_o(	suspended_o	),
 		.mc_c_oe(	mc_coe_pad_coe_o),
+		.mc_c_oe_d(	mc_c_oe_d	),
 		.mc_ack_r(	mc_ack_r	),
 		.oe_(		oe_		),
 		.wb_stb_i(	wb_stb_i 	),
 		.wb_sel_i(	wb_sel_i	),
 		.wb_cycle(	wb_cycle	),
-		.wr_cycle(	wr_cycle	)
+		.wr_cycle(	wr_cycle	),
+		.mc_data_i(	mc_data_pad_i	),
+		.mc_dp_i(	mc_dp_pad_i	),
+		.mc_data_ir(	mc_data_ir	),
+		.mc_sts_i(	mc_sts_pad_i	),
+		.mc_sts_ir(	mc_sts_ir	)
 		);
 
 endmodule

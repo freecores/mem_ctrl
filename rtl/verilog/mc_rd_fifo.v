@@ -38,16 +38,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_rd_fifo.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_rd_fifo.v,v 1.2 2001-11-29 02:16:28 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-11-29 02:16:28 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.1.1.1  2001/05/13 09:39:44  rudi
 //               Created Directory Structure
 //
@@ -92,8 +98,6 @@ always @(posedge clk)
 	if(we & wr_adr[3])	r3 <= #1 din;
 
 always @(rd_adr or r0 or r1 or r2 or r3 or re or we or din)
-	if(re & we)	dout = din;
-	else
 	case(rd_adr)		// synopsys full_case parallel_case
 	   4'h1:	dout = r0;
 	   4'h2:	dout = r1;

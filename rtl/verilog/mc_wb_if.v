@@ -38,16 +38,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_wb_if.v,v 1.3 2001-09-24 00:38:21 rudi Exp $
+//  $Id: mc_wb_if.v,v 1.4 2001-11-29 02:16:28 rudi Exp $
 //
-//  $Date: 2001-09-24 00:38:21 $
-//  $Revision: 1.3 $
+//  $Date: 2001-11-29 02:16:28 $
+//  $Revision: 1.4 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.3  2001/09/24 00:38:21  rudi
+//
+//               Changed Reset to be active high and async.
+//
 //               Revision 1.2  2001/08/10 08:16:21  rudi
 //
 //               - Changed IO names to be more clear.
@@ -63,7 +67,8 @@
 //               Revision 1.3  2001/06/12 15:19:49  rudi
 //
 //
-//               Minor changes after running lint, and a small bug fix reading csr and ba_mask registers.
+//              Minor changes after running lint, and a small bug
+//		fix reading csr and ba_mask registers.
 //
 //               Revision 1.2  2001/06/03 11:37:17  rudi
 //
@@ -92,14 +97,16 @@
 module mc_wb_if(clk, rst,
 		wb_addr_i, wb_cyc_i, wb_stb_i, wb_we_i, wb_err, wb_ack_o,
 		wb_read_go, wb_write_go, 
-		wb_first, wb_wait, mem_ack, wr_hold);
+		wb_first, wb_wait, mem_ack, wr_hold,
+		err, par_err, wp_err,
+		wb_data_o, mem_dout, rf_dout);
 
 input		clk, rst;
 input	[31:0]	wb_addr_i;
 input		wb_cyc_i;
 input		wb_stb_i;
 input		wb_we_i;
-input		wb_err;
+output		wb_err;
 output		wb_ack_o;
 output		wb_read_go;
 output		wb_write_go;
@@ -107,6 +114,9 @@ output		wb_first;
 output		wb_wait;
 input		mem_ack;
 output		wr_hold;
+input		err, par_err, wp_err;
+output	[31:0]	wb_data_o;
+input	[31:0]	mem_dout, rf_dout;
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -124,6 +134,9 @@ reg		wr_hold;
 wire		rmw;
 reg		rmw_r;
 reg		rmw_en;
+reg		wb_ack_o;
+reg		wb_err;
+reg	[31:0]	wb_data_o;
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -135,7 +148,7 @@ assign mem_sel = `MC_MEM_SEL;
 always @(posedge clk or posedge rst)
 	if(rst)			rmw_en <= #1 1'b0;
 	else
-	if(mem_ack)		rmw_en <= #1 1'b1;
+	if(wb_ack_o)		rmw_en <= #1 1'b1;
 	else
 	if(!wb_cyc_i)		rmw_en <= #1 1'b0;
 
@@ -144,14 +157,14 @@ always @(posedge clk)
 
 assign rmw = rmw_r | (!wr_hold & wb_we_i & wb_cyc_i & wb_stb_i & rmw_en);
 
-
 always @(posedge clk)
-	read_go_r1 <= #1 !rmw & wb_cyc_i & ((wb_stb_i & mem_sel & !wb_we_i) | read_go_r);
+	read_go_r1 <= #1 !rmw & wb_cyc_i &
+			((wb_stb_i & mem_sel & !wb_we_i) | read_go_r);
 
 always @(posedge clk)
 	read_go_r <= #1 read_go_r1 & wb_cyc_i;
 
-assign	wb_read_go   =  !rmw & read_go_r1 & wb_cyc_i;
+assign	wb_read_go = !rmw & read_go_r1 & wb_cyc_i;
 
 always @(posedge clk)
 	write_go_r1 <= #1 wb_cyc_i & ((wb_stb_i & mem_sel & wb_we_i) | write_go_r);
@@ -160,18 +173,18 @@ always @(posedge clk)
 	write_go_r <= #1 write_go_r1 & wb_cyc_i &
 			((wb_we_i & wb_stb_i) | !wb_stb_i);
 
-assign wb_write_go   = !rmw & write_go_r1 & wb_cyc_i &
+assign wb_write_go =	!rmw & write_go_r1 & wb_cyc_i &
 			((wb_we_i & wb_stb_i) | !wb_stb_i);
 
 assign wb_first_set = mem_sel & wb_cyc_i & wb_stb_i & !(read_go_r | write_go_r);
-assign wb_first = wb_first_set | (wb_first_r & !mem_ack & !wb_err);
+assign wb_first = wb_first_set | (wb_first_r & !wb_ack_o & !wb_err);
 
 always @(posedge clk or posedge rst)
 	if(rst)			wb_first_r <= #1 1'b0;
 	else
 	if(wb_first_set)	wb_first_r <= #1 1'b1;
 	else
-	if(mem_ack | wb_err)	wb_first_r <= #1 1'b0;
+	if(wb_ack_o | wb_err)	wb_first_r <= #1 1'b0;
 
 always @(posedge clk)
 	if(wb_cyc_i & wb_stb_i)	wr_hold <= #1 wb_we_i;
@@ -181,7 +194,13 @@ always @(posedge clk)
 // WB Ack
 //
 
-assign wb_ack_o = mem_ack;
+always @(posedge clk)
+	wb_ack_o <= #1 `MC_MEM_SEL ? mem_ack :
+			`MC_REG_SEL & wb_cyc_i & wb_stb_i & !wb_ack_o;
+
+always @(posedge clk)
+	wb_err <= #1 wb_cyc_i & wb_stb_i & `MC_MEM_SEL &
+			(par_err | err | wp_err) & !wb_err;
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -189,5 +208,13 @@ assign wb_ack_o = mem_ack;
 //
 
 assign wb_wait = wb_cyc_i & !wb_stb_i & (wb_write_go | wb_read_go);
+
+////////////////////////////////////////////////////////////////////
+//
+// WISHBONE Data Output
+//
+
+always @(posedge clk)
+	wb_data_o <= #1 `MC_MEM_SEL ? mem_dout : rf_dout;
 
 endmodule

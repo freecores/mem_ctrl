@@ -931,8 +931,8 @@ end
 
 // record the time for addr changes .
 always @(addr) begin
-  if ($time != 0) begin
-    if ((curr_addr_time + TAVAV) > $time & !ceb)    //Read/Write Cycle Time		--- Added "& !ceb" RU 9/9/99 9pm
+  if ($time != 0 & !ceb) begin
+    if (((curr_addr_time + TAVAV) > $time) & !ceb)    //Read/Write Cycle Time		--- Added "& !ceb" RU 9/9/99 9pm
       $display("FLASH: [",$time,"] Timing Violation: Read/Write Cycle Time (TAVAV), Last addr change: %d",curr_addr_time) ;
     curr_addr_time = $time ;
   end

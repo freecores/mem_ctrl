@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_cs_rf.v,v 1.3 2001-09-24 00:38:21 rudi Exp $
+//  $Id: mc_cs_rf.v,v 1.4 2001-11-29 02:16:28 rudi Exp $
 //
-//  $Date: 2001-09-24 00:38:21 $
-//  $Revision: 1.3 $
+//  $Date: 2001-11-29 02:16:28 $
+//  $Revision: 1.4 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.3  2001/09/24 00:38:21  rudi
+//
+//               Changed Reset to be active high and async.
+//
 //               Revision 1.2  2001/08/10 08:16:21  rudi
 //
 //               - Changed IO names to be more clear.
@@ -133,26 +137,31 @@ reg		lmr_req_we;
 // Write Logic
 //
 
-assign sel = addr[6:3] == reg_select[3:0];
+reg	[6:0]	addr_r;
 
-always @(posedge clk or posedge rst)
-	if(rst)				csc <= #1 (this_cs[2:0] == `MC_DEF_SEL) ? 
+always @(posedge clk)
+	addr_r <= #1 addr[6:0];
+
+assign sel = addr_r[6:3] == reg_select[3:0];
+
+always @(posedge clk)
+	if(rst)		csc <= #1 (this_cs[2:0] == `MC_DEF_SEL) ? 
 			{26'h0, poc[1:0], 1'b0, poc[3:2], (poc[3:2] != 2'b00)} : 32'h0;
 	else
-	if(rf_we & sel & !addr[2])	csc <= #1 din;
+	if(rf_we & sel & !addr_r[2])	csc <= #1 din;
 
-always @(posedge clk or posedge rst)
+always @(posedge clk)
 	if(rst)				tms <= #1 (this_cs[2:0] == `MC_DEF_SEL) ?
 						`MC_DEF_POR_TMS : 32'h0;
 	else
-	if(rf_we & sel & addr[2])	tms <= #1 din;
+	if(rf_we & sel & addr_r[2])	tms <= #1 din;
 
 ////////////////////////////////////////////////////////////////////
 //
 // Load Mode Register Request/Ack Logic
 //
 always @(posedge clk)
-	lmr_req_we <= #1 rf_we & sel & addr[2];
+	lmr_req_we <= #1 rf_we & sel & addr_r[2];
 
 always @(posedge clk or posedge rst)
 	if(rst)		lmr_req <= #1 1'b0;
@@ -167,7 +176,7 @@ always @(posedge clk or posedge rst)
 // Initialize SDRAM Request/Ack & tracking logic
 //
 always @(posedge clk)
-	init_req_we <= #1 rf_we & sel & !addr[2];
+	init_req_we <= #1 rf_we & sel & !addr_r[2];
 
 always @(posedge clk or posedge rst)
 	if(rst)		init_req <= #1 1'b0;

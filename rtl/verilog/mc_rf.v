@@ -37,16 +37,21 @@
 
 //  CVS Log
 //
-//  $Id: mc_rf.v,v 1.4 2001-10-04 03:19:37 rudi Exp $
+//  $Id: mc_rf.v,v 1.5 2001-11-29 02:16:28 rudi Exp $
 //
-//  $Date: 2001-10-04 03:19:37 $
-//  $Revision: 1.4 $
+//  $Date: 2001-11-29 02:16:28 $
+//  $Revision: 1.5 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.4  2001/10/04 03:19:37  rudi
+//
+//               Fixed Register reads
+//               Tightened up timing for register rd/wr
+//
 //               Revision 1.3  2001/09/24 00:38:21  rudi
 //
 //               Changed Reset to be active high and async.
@@ -95,7 +100,7 @@
 module mc_rf(clk, rst,
 
 	wb_data_i, rf_dout, wb_addr_i, wb_we_i, wb_cyc_i,
-	wb_stb_i, wb_ack_o, wb_err_o, wp_err,
+	wb_stb_i, wb_ack_o, wp_err,
 
 	csc, tms, poc,
 	sp_csc, sp_tms, cs,
@@ -119,7 +124,6 @@ input		wb_we_i;
 input		wb_cyc_i;
 input		wb_stb_i;
 output		wb_ack_o;
-output		wb_err_o;
 output		wp_err;
 
 // --------------------------------------
@@ -156,7 +160,6 @@ output	[7:0]	spec_req_cs;
 //
 
 reg		wb_ack_o;
-reg		ack_r;
 
 reg	[31:0]	csc;
 reg	[31:0]	tms;
@@ -165,7 +168,7 @@ reg	[31:0]	sp_tms;
 reg	[31:0]	rf_dout;
 reg	[7:0]	cs;
 
-wire		rf_we;
+reg		rf_we;
 wire	[31:0]	csr;
 reg	[10:0]	csr_r;
 reg	[7:0]	csr_r2;
@@ -207,8 +210,6 @@ wire	[7:0]	spec_req_cs_t;
 wire	[7:0]	spec_req_cs_d;
 reg	[7:0]	spec_req_cs;
 reg		init_req, lmr_req;
-wire	[2:0]	cs_sel;
-wire	[2:0]	sp_cs_sel;
 reg		sreq_cs_le;
 
 // Aliases
@@ -220,31 +221,30 @@ assign csc_mask = {21'h0, csc_mask_r};
 // WISHBONE Register Read logic
 //
 
-assign wb_err_o = 1'b0;
-
-always @(posedge clk)
-	if(wb_cyc_i & wb_stb_i & `MC_REG_SEL & !wb_we_i)
+always @(wb_addr_i or csr or poc or csc_mask or csc0 or tms0 or csc1 or
+	tms1 or csc2 or tms2 or csc3 or tms3 or csc4 or tms4 or csc5 or
+	tms5 or csc6 or tms6 or csc7 or tms7)
 	case(wb_addr_i[6:2])		// synopsys full_case parallel_case
-	   5'd0:	rf_dout <= #1 csr;
-	   5'd1:	rf_dout <= #1 poc;
-	   5'd2:	rf_dout <= #1 csc_mask;
+	   5'h00:	rf_dout <= #1 csr;
+	   5'h01:	rf_dout <= #1 poc;
+	   5'h02:	rf_dout <= #1 csc_mask;
 
-	   5'd4:	rf_dout <= #1 csc0;
-	   5'd5:	rf_dout <= #1 tms0;
-	   5'd6:	rf_dout <= #1 csc1;
-	   5'd7:	rf_dout <= #1 tms1;
-	   5'd8:	rf_dout <= #1 csc2;
-	   5'd9:	rf_dout <= #1 tms2;
-	   5'd10:	rf_dout <= #1 csc3;
-	   5'd11:	rf_dout <= #1 tms3;
-	   5'd12:	rf_dout <= #1 csc4;
-	   5'd13:	rf_dout <= #1 tms4;
-	   5'd14:	rf_dout <= #1 csc5;
-	   5'd15:	rf_dout <= #1 tms5;
-	   5'd16:	rf_dout <= #1 csc6;
-	   5'd17:	rf_dout <= #1 tms6;
-	   5'd18:	rf_dout <= #1 csc7;
-	   5'd19:	rf_dout <= #1 tms7;
+	   5'h04:	rf_dout <= #1 csc0;
+	   5'h05:	rf_dout <= #1 tms0;
+	   5'h06:	rf_dout <= #1 csc1;
+	   5'h07:	rf_dout <= #1 tms1;
+	   5'h08:	rf_dout <= #1 csc2;
+	   5'h09:	rf_dout <= #1 tms2;
+	   5'h0a:	rf_dout <= #1 csc3;
+	   5'h0b:	rf_dout <= #1 tms3;
+	   5'h0c:	rf_dout <= #1 csc4;
+	   5'h0d:	rf_dout <= #1 tms4;
+	   5'h0e:	rf_dout <= #1 csc5;
+	   5'h0f:	rf_dout <= #1 tms5;
+	   5'h10:	rf_dout <= #1 csc6;
+	   5'h11:	rf_dout <= #1 tms6;
+	   5'h12:	rf_dout <= #1 csc7;
+	   5'h13:	rf_dout <= #1 tms7;
 	endcase
 
 ////////////////////////////////////////////////////////////////////
@@ -252,18 +252,24 @@ always @(posedge clk)
 // WISHBONE Register Write logic
 //
 
-assign rf_we = `MC_REG_SEL & wb_we_i & wb_cyc_i & wb_stb_i;
+reg	[6:0]	wb_addr_r;
+
+always @(posedge clk)
+	wb_addr_r <= #1 wb_addr_i[6:0];
+
+always @(posedge clk)
+	rf_we <= #1 `MC_REG_SEL & wb_we_i & wb_cyc_i & wb_stb_i & !rf_we;
 
 always @(posedge clk or posedge rst)
 	if(rst)		csr_r2 <= #1 8'h0;
 	else
-	if(rf_we & (wb_addr_i[6:2] == 5'h0) )
+	if(rf_we & (wb_addr_r[6:2] == 5'h0) )
 			csr_r2 <= #1 wb_data_i[31:24];
 
 always @(posedge clk or posedge rst)
 	if(rst)		csr_r[10:1] <= #1 10'h0;
 	else
-	if(rf_we & (wb_addr_i[6:2] == 5'h0) )
+	if(rf_we & (wb_addr_r[6:2] == 5'h0) )
 			csr_r[10:1] <= #1 wb_data_i[10:1];
 
 always @(posedge clk)
@@ -276,7 +282,7 @@ assign rfr_ps_val = csr_r2[7:0];
 always @(posedge clk or posedge rst)
 	if(rst)		csc_mask_r <= #1 11'h7ff;
 	else
-	if(rf_we & (wb_addr_i[6:2] == 5'h2) )
+	if(rf_we & (wb_addr_r[6:2] == 5'h2) )
 			csc_mask_r <= #1 wb_data_i[10:0];
 
 always @(posedge clk)
@@ -288,10 +294,6 @@ always @(posedge clk)
 //
 
 always @(posedge clk)
-	ack_r <= #1 `MC_REG_SEL & wb_cyc_i & wb_stb_i & !ack_r & !wb_ack_o;
-
-always @(posedge clk)
-	//wb_ack_o <= #1 (ack_r & wb_we_i) | (`MC_REG_SEL & wb_cyc_i & wb_stb_i & !wb_we_i & !wb_ack_o) ;
 	wb_ack_o <= #1 `MC_REG_SEL & wb_cyc_i & wb_stb_i & !wb_ack_o;
 
 ////////////////////////////////////////////////////////////////////
@@ -309,65 +311,81 @@ always @(posedge clk)
 	else
 	if(!wb_cyc_i)	wp_err <= #1 1'b0;
 
-assign cs_sel[0] = cs1 | cs3 | cs5 | cs7;
-assign cs_sel[1] = cs2 | cs3 | cs6 | cs7;
-assign cs_sel[2] = cs4 | cs5 | cs6 | cs7;
-
 always @(posedge clk)
 	if(cs_le)
-	case(cs_sel)		// synopsys full_case parallel_case
-	   3'h0: csc <= #1 csc0;
-	   3'h1: csc <= #1 csc1;
-	   3'h2: csc <= #1 csc2;
-	   3'h3: csc <= #1 csc3;
-	   3'h4: csc <= #1 csc4;
-	   3'h5: csc <= #1 csc5;
-	   3'h6: csc <= #1 csc6;
-	   3'h7: csc <= #1 csc7;
-	endcase
+	   begin
+		if(cs0)	csc <= #1 csc0;
+		else
+		if(cs1)	csc <= #1 csc1;
+		else
+		if(cs2)	csc <= #1 csc2;
+		else
+		if(cs3)	csc <= #1 csc3;
+		else
+		if(cs4)	csc <= #1 csc4;
+		else
+		if(cs5)	csc <= #1 csc5;
+		else
+		if(cs6)	csc <= #1 csc6;
+		else	csc <= #1 csc7;
+	   end
 
 always @(posedge clk)
 	if(cs_le | rf_we)
-	case(cs_sel)		// synopsys full_case parallel_case
-	   3'h0: tms <= #1 tms0;
-	   3'h1: tms <= #1 tms1;
-	   3'h2: tms <= #1 tms2;
-	   3'h3: tms <= #1 tms3;
-	   3'h4: tms <= #1 tms4;
-	   3'h5: tms <= #1 tms5;
-	   3'h6: tms <= #1 tms6;
-	   3'h7: tms <= #1 tms7;
-	endcase
-
-assign sp_cs_sel[0] = spec_req_cs[1] | spec_req_cs[3] | spec_req_cs[5] | spec_req_cs[7];
-assign sp_cs_sel[1] = spec_req_cs[2] | spec_req_cs[3] | spec_req_cs[6] | spec_req_cs[7];
-assign sp_cs_sel[2] = spec_req_cs[4] | spec_req_cs[5] | spec_req_cs[6] | spec_req_cs[7];
+	   begin
+		if(cs0)	tms <= #1 tms0;
+		else
+		if(cs1)	tms <= #1 tms1;
+		else
+		if(cs2)	tms <= #1 tms2;
+		else
+		if(cs3)	tms <= #1 tms3;
+		else
+		if(cs4)	tms <= #1 tms4;
+		else
+		if(cs5)	tms <= #1 tms5;
+		else
+		if(cs6)	tms <= #1 tms6;
+		else	tms <= #1 tms7;
+	   end
 
 always @(posedge clk)
 	if(cs_le)
-	case(sp_cs_sel)		// synopsys full_case parallel_case
-	   3'h0: sp_csc <= #1 csc0;
-	   3'h1: sp_csc <= #1 csc1;
-	   3'h2: sp_csc <= #1 csc2;
-	   3'h3: sp_csc <= #1 csc3;
-	   3'h4: sp_csc <= #1 csc4;
-	   3'h5: sp_csc <= #1 csc5;
-	   3'h6: sp_csc <= #1 csc6;
-	   3'h7: sp_csc <= #1 csc7;
-	endcase
+	   begin
+		if(spec_req_cs[0])	sp_csc <= #1 csc0;
+		else
+		if(spec_req_cs[1])	sp_csc <= #1 csc1;
+		else
+		if(spec_req_cs[2])	sp_csc <= #1 csc2;
+		else
+		if(spec_req_cs[3])	sp_csc <= #1 csc3;
+		else
+		if(spec_req_cs[4])	sp_csc <= #1 csc4;
+		else
+		if(spec_req_cs[5])	sp_csc <= #1 csc5;
+		else
+		if(spec_req_cs[6])	sp_csc <= #1 csc6;
+		else			sp_csc <= #1 csc7;
+	   end
 
 always @(posedge clk)
 	if(cs_le | rf_we)
-	case(sp_cs_sel)		// synopsys full_case parallel_case
-	   3'h0: sp_tms <= #1 tms0;
-	   3'h1: sp_tms <= #1 tms1;
-	   3'h2: sp_tms <= #1 tms2;
-	   3'h3: sp_tms <= #1 tms3;
-	   3'h4: sp_tms <= #1 tms4;
-	   3'h5: sp_tms <= #1 tms5;
-	   3'h6: sp_tms <= #1 tms6;
-	   3'h7: sp_tms <= #1 tms7;
-	endcase
+	   begin
+		if(spec_req_cs[0])	sp_tms <= #1 tms0;
+		else
+		if(spec_req_cs[1])	sp_tms <= #1 tms1;
+		else
+		if(spec_req_cs[2])	sp_tms <= #1 tms2;
+		else
+		if(spec_req_cs[3])	sp_tms <= #1 tms3;
+		else
+		if(spec_req_cs[4])	sp_tms <= #1 tms4;
+		else
+		if(spec_req_cs[5])	sp_tms <= #1 tms5;
+		else
+		if(spec_req_cs[6])	sp_tms <= #1 tms6;
+		else			sp_tms <= #1 tms7;
+	   end
 
 assign	cs_need_rfr[0] = csc0[0] & (csc0[3:1] == `MC_MEM_TYPE_SDRAM);
 assign	cs_need_rfr[1] = csc1[0] & (csc1[3:1] == `MC_MEM_TYPE_SDRAM);
@@ -405,14 +423,14 @@ always @(posedge clk)
 	sreq_cs_le <= #1 (!init_req & !lmr_req) | lmr_ack_fe | init_ack_fe;
 
 // Make sure only one is serviced at a time
-assign	spec_req_cs_d[0] =	spec_req_cs_t[0];
-assign	spec_req_cs_d[1] =	spec_req_cs_t[1] & !spec_req_cs_t[0];
-assign	spec_req_cs_d[2] =	spec_req_cs_t[2] & !( |spec_req_cs_t[1:0] );
-assign	spec_req_cs_d[3] =	spec_req_cs_t[3] & !( |spec_req_cs_t[2:0] );
-assign	spec_req_cs_d[4] =	spec_req_cs_t[4] & !( |spec_req_cs_t[3:0] );
-assign	spec_req_cs_d[5] =	spec_req_cs_t[5] & !( |spec_req_cs_t[4:0] );
-assign	spec_req_cs_d[6] =	spec_req_cs_t[6] & !( |spec_req_cs_t[5:0] );
-assign	spec_req_cs_d[7] =	spec_req_cs_t[7] & !( |spec_req_cs_t[6:0] );
+assign	spec_req_cs_d[0] = spec_req_cs_t[0];
+assign	spec_req_cs_d[1] = spec_req_cs_t[1] & !spec_req_cs_t[0];
+assign	spec_req_cs_d[2] = spec_req_cs_t[2] & !( |spec_req_cs_t[1:0] );
+assign	spec_req_cs_d[3] = spec_req_cs_t[3] & !( |spec_req_cs_t[2:0] );
+assign	spec_req_cs_d[4] = spec_req_cs_t[4] & !( |spec_req_cs_t[3:0] );
+assign	spec_req_cs_d[5] = spec_req_cs_t[5] & !( |spec_req_cs_t[4:0] );
+assign	spec_req_cs_d[6] = spec_req_cs_t[6] & !( |spec_req_cs_t[5:0] );
+assign	spec_req_cs_d[7] = spec_req_cs_t[7] & !( |spec_req_cs_t[6:0] );
 
 // Request Tracking
 always @(posedge clk)
@@ -424,11 +442,11 @@ always @(posedge clk)
 			lmr_req4 | lmr_req5 | lmr_req6 | lmr_req7;
 
 assign spec_req_cs_t = !init_req ?	// Load Mode Register Requests
-					{lmr_req7, lmr_req6, lmr_req5, lmr_req4,
-					lmr_req3, lmr_req2, lmr_req1, lmr_req0 } :
-					// Initialize SDRAM Requests
-					{init_req7, init_req6, init_req5, init_req4,
-					init_req3, init_req2, init_req1, init_req0 };
+				{lmr_req7, lmr_req6, lmr_req5, lmr_req4,
+				lmr_req3, lmr_req2, lmr_req1, lmr_req0 } :
+				// Initialize SDRAM Requests
+				{init_req7, init_req6, init_req5, init_req4,
+				init_req3, init_req2, init_req1, init_req0 };
 
 // Ack distribution
 assign lmr_ack0 = spec_req_cs[0] & lmr_ack_fe;
