@@ -38,16 +38,20 @@
 
 //  CVS Log
 //
-//  $Id: test_lib.v,v 1.2 2001-09-02 02:29:43 rudi Exp $
+//  $Id: test_lib.v,v 1.3 2001-11-11 01:52:03 rudi Exp $
 //
-//  $Date: 2001-09-02 02:29:43 $
-//  $Revision: 1.2 $
+//  $Date: 2001-11-11 01:52:03 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/09/02 02:29:43  rudi
+//
+//               Fixed the TMS register setup to be tight and correct.
+//
 //               Revision 1.1  2001/07/29 07:34:40  rudi
 //
 //
@@ -200,9 +204,9 @@ task mc_reset;
 
 begin
 repeat(10)	@(posedge clk);
-rst = 0;
-repeat(10)	@(posedge clk);
 rst = 1;
+repeat(10)	@(posedge clk);
+rst = 0;
 repeat(20)	@(posedge clk);
 end
 endtask

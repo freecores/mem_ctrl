@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: wb_mast_model.v,v 1.1 2001-07-29 07:34:40 rudi Exp $
+//  $Id: wb_mast_model.v,v 1.2 2001-11-11 01:52:03 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:40 $
-//  $Revision: 1.1 $
+//  $Date: 2001-11-11 01:52:03 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:40  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.1.1.1  2001/05/13 09:36:33  rudi
 //               Created Directory Structure
 //
@@ -135,7 +141,7 @@ input	[31:0]	d;
 
 begin
 
-@(posedge clk);
+//@(posedge clk);
 #1;
 adr = a;
 dout = d;
@@ -502,7 +508,7 @@ output	[31:0]	d;
 
 begin
 
-@(posedge clk);
+//@(posedge clk);
 #1;
 adr = a;
 cyc = 1;

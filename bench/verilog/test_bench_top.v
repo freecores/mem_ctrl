@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: test_bench_top.v,v 1.3 2001-09-02 02:29:43 rudi Exp $
+//  $Id: test_bench_top.v,v 1.4 2001-11-11 01:52:02 rudi Exp $
 //
-//  $Date: 2001-09-02 02:29:43 $
-//  $Revision: 1.3 $
+//  $Date: 2001-11-11 01:52:02 $
+//  $Revision: 1.4 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.3  2001/09/02 02:29:43  rudi
+//
+//               Fixed the TMS register setup to be tight and correct.
+//
 //               Revision 1.2  2001/08/10 08:16:21  rudi
 //
 //               - Changed IO names to be more clear.
@@ -157,7 +161,7 @@ integer		adr;
 `define	MEM_BASE4	32'h1000_0000
 `define	MEM_BASE5	32'h1400_0000
 `define	MEM_BASE6	32'h1800_0000
-`define	REG_BASE	32'hf000_0000
+`define	REG_BASE	32'h6000_0000
 
 `define	CSR		8'h00
 `define	POC		8'h04
@@ -213,7 +217,7 @@ initial
 	error_cnt = 0;
    	clk = 1;
 	mc_clk = 0;
-   	rst = 0;
+   	rst = 1;
 	susp_req = 0;
 	resume_req = 0;
 	verbose = 1;
@@ -221,7 +225,7 @@ initial
 
    	repeat(11)	@(posedge clk);
 	#1;
-   	rst = 1;
+   	rst = 0;
    	repeat(10)	@(posedge clk);
 
 	// HERE IS WHERE THE TEST CASES GO ...
@@ -316,10 +320,11 @@ $display(" :....................................................:");
 	sram_rmw1;
 	sram_rmw2;
 `endif
-	scs_rdwr1(2);
+	//scs_rdwr1(2);
 
+	mc_reset;
    end
-else
+//else
 if(1)	// Suspend resume testing
 begin
 $display(" ......................................................");
@@ -329,7 +334,7 @@ $display(" :....................................................:");
 
 	verbose = 0;
 	done = 0;
-	LVL = 1;
+	LVL = 2;
 
 	fork
 
@@ -374,12 +379,14 @@ $display(" :....................................................:");
 		sdram_wr5(LVL);
 `endif
 
+
 `ifdef FLASH
 		while(susp_req | suspended)	@(posedge clk);
 		asc_rdwr1(LVL);
 `endif
 
 `ifdef SRAM
+
 		while(susp_req | suspended)	@(posedge clk);
 		sram_rd1;
 		while(susp_req | suspended)	@(posedge clk);
@@ -396,8 +403,8 @@ $display(" :....................................................:");
 		while(susp_req | suspended)	@(posedge clk);
 		sram_rmw2;
 `endif
-		while(susp_req | suspended)	@(posedge clk);
-		scs_rdwr1(LVL);
+		//while(susp_req | suspended)	@(posedge clk);
+		//scs_rdwr1(LVL);
 
 
 		done = 1;
@@ -412,11 +419,11 @@ $display(" :....................................................:");
 		   end
 	   end
 	join
+
+	mc_reset;
 end
 //else
-mc_reset;
-
-if(1)	// Bus Request testing
+if(0)	// Bus Request testing
 begin
 $display(" ......................................................");
 $display(" :                                                    :");
@@ -424,7 +431,7 @@ $display(" :    Bus Request/Grant Testing ...                   :");
 $display(" :....................................................:");
 	verbose = 0;
 	done = 0;
-	LVL = 1;
+	LVL = 2;
 	fork
 
 	   begin
@@ -460,7 +467,7 @@ $display(" :....................................................:");
 		sram_rmw1;
 		sram_rmw2;
 `endif
-		scs_rdwr1(LVL);
+		//scs_rdwr1(LVL);
 
 		done = 1;
 	   end
@@ -490,19 +497,48 @@ $display(" :....................................................:");
 `define	POC		8'h04
 `define	BA_MASK		8'h08
 
-	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0000_0000);
-	//sdram_rmw2(2);
+`define	CSR_MASK	32'hff00_07fe
+`define BAM_MASK	32'h0000_07ff
+`define CSC_MASK	32'hffff_ffff
+`define TMS_MASK	32'hffff_ffff
 
+	m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'hffff_ffff);
+	m0.wb_wr1(`REG_BASE + `BA_MASK,	4'hf, 32'hffff_ffff);
+	m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'hffff_ffff);
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, 32'hffff_ffff);
+	m0.wb_wr1(`REG_BASE + `CSC1,	4'hf, 32'hffff_ffff);
+	m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, 32'hffff_ffff);
+	m0.wb_wr1(`REG_BASE + `CSC2,	4'hf, 32'hffff_ffff);
+	m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, 32'hffff_ffff);
+	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'hffff_ffff);
+	m0.wb_wr1(`REG_BASE + `TMS3,	4'hf, 32'hffff_ffff);
+
+	m0.wb_rd1(`REG_BASE + `CSR,	4'hf, data);
+	m0.wb_rd1(`REG_BASE + `BA_MASK,	4'hf, data);
+	m0.wb_rd1(`REG_BASE + `CSC0,	4'hf, data);
+	m0.wb_rd1(`REG_BASE + `TMS0,	4'hf, data);
+	m0.wb_rd1(`REG_BASE + `CSC1,	4'hf, data);
+	m0.wb_rd1(`REG_BASE + `TMS1,	4'hf, data);
+	m0.wb_rd1(`REG_BASE + `CSC2,	4'hf, data);
+	m0.wb_rd1(`REG_BASE + `TMS2,	4'hf, data);
+	m0.wb_rd1(`REG_BASE + `CSC3,	4'hf, data);
+	m0.wb_rd1(`REG_BASE + `TMS3,	4'hf, data);
+
+
+
+
+
+	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0000_0000);
+	//sdram_rd1(2);
+	//sdram_wr1(2);
+	//asc_rdwr1(2);
 	//sram_rd1;
+	//sram_wr1;
 	//sram_rmw1;
 	//sram_rmw2;
 	//sram_wp;
 
 	//scs_rdwr1(2);
-
-
-	//sdram_rd3(2);
-	//sdram_wr3(2);
 
 	//asc_rdwr1(2);
 	//asc_rdwr1_x(2);
@@ -513,7 +549,15 @@ $display(" :....................................................:");
 
 	//sdram_rd2(2);
 	//sdram_wr2(2);
-	sdram_wr1(2);
+
+	//sdram_bo;
+	//sdram_rd1b(2);
+
+	//sdram_rd1(2);
+	//sdram_wr1(2);
+
+	//sdram_rd5(2);
+	//sdram_wr5(2);
 /*
 	sdram_rd1(2);
 	sdram_wr1(2);
@@ -523,21 +567,21 @@ $display(" :....................................................:");
 	sdram_wr3(2);
 	sdram_rd4(2);
 	sdram_wr4(2);
-
 	sdram_rd5(2);
 	sdram_wr5(2);
-
+ 
 	sdram_wp(2);
 	sdram_rmw1(2);
-	sdram_rmw2(2);
+	sdram_rmw2(2); 
+
 */
 
-	//sdram_rmw2(2);
+
 
 	repeat(100)	@(posedge clk);
 	$finish;
    end
-else
+else 
    begin
 
 	//
@@ -546,7 +590,7 @@ else
 	$display("\n\n");
 	$display("*****************************************************");
 	$display("*** Test Development ...                          ***");
-	$display("*****************************************************\n");
+	$display("*****************************************************\n"                                                             );
 
 
 	show_errors;
@@ -569,8 +613,6 @@ end	// End of Initial
 always #2.5	clk = ~clk;
 
 always @(posedge clk)
-	//#0.5 mc_clk <= ~mc_clk;
-	//#4.5 mc_clk <= ~mc_clk;
 	mc_clk <= ~mc_clk;
 
 /////////////////////////////////////////////////////////////////////
@@ -660,7 +702,8 @@ always @(poc_mode)
 	   default: rst_dq_val = 32'hzzzz_zzzz;
 	endcase
 
-assign #1 mc_dq = mc_data_oe ? mc_data_o : (~rst ? rst_dq_val : 32'hzzzz_zzzz);
+/*
+assign #1 mc_dq = mc_data_oe ? mc_data_o : (rst ? rst_dq_val : 32'hzzzz_zzzz);
 assign #1 mc_data_i = mc_dq;
 
 assign #1 mc_dqp = mc_data_oe ? mc_dp_o : 4'hz;
@@ -679,6 +722,31 @@ assign #1 mc_vpen = mc_c_oe ? _mc_vpen : 1'bz;
 assign #1 mc_adsc_ = mc_c_oe ? _mc_adsc_ : 1'bz;
 assign #1 mc_adv_ = mc_c_oe ? _mc_adv_ : 1'bz;
 assign #1 mc_zz = mc_c_oe ? _mc_zz : 1'bz;
+*/
+
+
+assign  mc_dq = mc_data_oe ? mc_data_o : (rst ? rst_dq_val : 32'hzzzz_zzzz);
+assign  mc_data_i = mc_dq;
+
+assign  mc_dqp = mc_data_oe ? mc_dp_o : 4'hz;
+assign  mc_dp_i = mc_dqp;
+
+assign  mc_addr = mc_c_oe ? _mc_addr : 24'bz;
+assign  mc_dqm = mc_c_oe ? _mc_dqm : 4'bz;
+assign  mc_oe_ = mc_c_oe ? _mc_oe_ : 1'bz;
+assign  mc_we_ = mc_c_oe ? _mc_we_ : 1'bz;
+assign  mc_cas_ = mc_c_oe ? _mc_cas_ : 1'bz;
+assign  mc_ras_ = mc_c_oe ? _mc_ras_ : 1'bz;
+assign  #1.5 mc_cke_ = mc_c_oe ? _mc_cke_ : 1'bz;
+assign  mc_cs_ = mc_c_oe ? _mc_cs_ : 8'bz;
+assign  mc_rp_ = mc_c_oe ? _mc_rp_ : 1'bz;
+assign  mc_vpen = mc_c_oe ? _mc_vpen : 1'bz;
+assign  mc_adsc_ = mc_c_oe ? _mc_adsc_ : 1'bz;
+assign  mc_adv_ = mc_c_oe ? _mc_adv_ : 1'bz;
+assign  mc_zz = mc_c_oe ? _mc_zz : 1'bz;
+
+
+
 
 pullup p0(mc_cas_);
 pullup p1(mc_ras_);
@@ -750,7 +818,7 @@ mc_top	u0(
 //
 
 wb_mast	m0(	.clk(		clk		),
-		.rst(		rst		),
+		.rst(		~rst		),
 		.adr(		wb_addr_i	),
 		.din(		wb_data_o	),
 		.dout(		wb_data_i	),
@@ -873,34 +941,33 @@ mt48lc2m32b2 sdram2(
 		);
 
 
-/*
-
-mt48lc4m16a2 sdram1a(
+mt48lc16m16a2 sdram1a(
 		.Dq(		mc_dq[15:0]	),
-		.Addr(		mc_addr[11:0]	),
+		.Addr(		mc_addr[12:0]	),
 		.Ba(		mc_addr[14:13]	),
 		.Clk(		mc_clk		),
 		.Cke(		mc_cke_		),
-		.Cs_n(		mc_cs_[1]	),
+		.Cs_n(		mc_cs_[5]	),
 		.Ras_n(		mc_ras_		),
 		.Cas_n(		mc_cas_		),
 		.We_n(		mc_we_		),
 		.Dqm(		mc_dqm[1:0]	)
 		);
 
-mt48lc4m16a2 sdram1b(
+mt48lc16m16a2 sdram1b(
 		.Dq(		mc_dq[31:16]	),
-		.Addr(		mc_addr[11:0]	),
+		.Addr(		mc_addr[12:0]	),
 		.Ba(		mc_addr[14:13]	),
 		.Clk(		mc_clk		),
 		.Cke(		mc_cke_		),
-		.Cs_n(		mc_cs_[1]	),
+		.Cs_n(		mc_cs_[5]	),
 		.Ras_n(		mc_ras_		),
 		.Cas_n(		mc_cas_		),
 		.We_n(		mc_we_		),
 		.Dqm(		mc_dqm[3:2]	)
 		);
 
+/*
 mt48lc8m8a2 sdram2a(
 		.Dq(		mc_dq[07:00]	),
 		.Addr(		mc_addr[11:0]	),

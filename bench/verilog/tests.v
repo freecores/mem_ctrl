@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: tests.v,v 1.3 2001-09-02 02:29:43 rudi Exp $
+//  $Id: tests.v,v 1.4 2001-11-11 01:52:03 rudi Exp $
 //
-//  $Date: 2001-09-02 02:29:43 $
-//  $Revision: 1.3 $
+//  $Date: 2001-11-11 01:52:03 $
+//  $Revision: 1.4 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.3  2001/09/02 02:29:43  rudi
+//
+//               Fixed the TMS register setup to be tight and correct.
+//
 //               Revision 1.2  2001/08/10 08:16:21  rudi
 //
 //               - Changed IO names to be more clear.
@@ -65,6 +69,263 @@
 //
 //
 //                        
+
+
+
+task sdram_bo;
+
+integer		n;
+integer		del, size;
+reg	[7:0]	mode;
+reg	[2:0]	bs;
+integer		sz_inc;
+integer		sz_max, del_max;
+integer		write;
+reg	[31:0]	mem_data;
+reg	[1:0]	bas, kro;
+
+begin
+$display("\n\n");
+$display("*****************************************************");
+$display("*** SDRAM Bank Overflow test 1                    ***");
+$display("*****************************************************\n");
+
+m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
+m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
+
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
+
+					1'd0,	// Wr. Burst Len (1=Single)
+					2'd0,	// Op Mode
+					3'd2,	// CL
+					1'b0,	// Burst Type (0=Seq;1=Inter)
+					3'd3	// Burst Length
+					});
+
+//force sdram0.Debug = 1;
+del = 1;
+bas = 0;
+kro = 1;
+for(kro=0;kro<2;kro=kro+1)
+for(bas=0;bas<2;bas=bas+1)
+begin
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0021 | (bas<<9) | (kro<<10));
+
+sdram0.mem_fill(1024);
+
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd8,		// Trfc [27:24]
+					4'd3,		// Trp [23:20]
+					3'd3,		// Trcd [19:17]
+					2'd2,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
+					1'd0,		// Wr. Burst Len (1=Single)
+					2'd0,		// Op Mode
+					3'd2,		// CL
+					1'b0,		// Burst Type (0=Seq;1=Inter)
+					3'd0		// Burst Length
+					});
+
+$display("kro: %0d, bas: %0d", kro, bas);
+
+m0.mem_fill;
+for(n=250;n<260;n=n+1)
+   begin
+
+	m0.wb_rd_mult(`MEM_BASE +     (n*4), 4'hf, del, 1);
+
+	if(!bas)
+		case(n[9:8])
+		   0: mem_data = sdram0.Bank0[n];
+		   1: mem_data = sdram0.Bank1[n-256];
+		   2: mem_data = sdram0.Bank2[n];
+		   3: mem_data = sdram0.Bank3[n];
+		endcase
+	else	mem_data = sdram0.Bank0[n];
+
+	if((mem_data !== m0.rd_mem[n-250]) |
+		(|mem_data === 1'bx) |
+		(|m0.rd_mem[n-250] === 1'bx)	 )
+	   begin
+		$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
+		n, mem_data, m0.rd_mem[n-250],  $time);
+		error_cnt = error_cnt + 1;
+	   end
+   end
+
+end
+
+show_errors;
+$display("*****************************************************");
+$display("*** Test DONE ...                                 ***");
+$display("*****************************************************\n\n");
+end
+endtask
+
+
+
+
+task sdram_rd1b;
+input		quick;
+
+integer		quick;
+integer		n;
+integer		del, size;
+reg	[7:0]	mode;
+reg	[2:0]	bs;
+integer		sz_inc;
+integer		sz_max, del_max;
+integer		write;
+reg	[31:0]	memd;
+
+begin
+$display("\n\n");
+$display("*****************************************************");
+$display("*** SDRAM Size, Delay & Mode Read test 1B ...     ***");
+$display("*****************************************************\n");
+
+m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
+m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
+
+m0.wb_wr1(`REG_BASE + `TMS5,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
+
+					1'd0,	// Wr. Burst Len (1=Single)
+					2'd0,	// Op Mode
+					3'd2,	// CL
+					1'b0,	// Burst Type (0=Seq;1=Inter)
+					3'd3	// Burst Length
+					});
+
+//m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821);
+m0.wb_wr1(`REG_BASE + `CSC5,	4'hf, 32'h0000_0091);
+
+case(quick)
+ 0: sz_max = 64;
+ 1: sz_max = 32;
+ 2: sz_max = 16;
+endcase
+
+case(quick)
+ 0: del_max = 16;
+ 1: del_max = 8;
+ 2: del_max = 4;
+endcase
+
+size = 4;
+del = 1;
+mode = 0;
+write = 0;
+//force sdram0.Debug = 1;
+
+for(mode=0;mode<10;mode=mode+1)
+begin
+	sdram1a.mem_fill(1024);
+	sdram1b.mem_fill(1024);
+	//sdram0p.mem_fill(1024);
+
+	case(mode[3:1])
+	   0: bs = 0;
+	   1: bs = 1;
+	   2: bs = 2;
+	   3: bs = 3;
+	   4: bs = 7;
+	endcase
+	
+	case(mode[3:1])
+	   0: sz_inc = 1;
+	   1: sz_inc = 2;
+	   2: sz_inc = 4;
+	   3: sz_inc = 8;
+	   4: sz_inc = 1;
+	endcase
+
+
+/*
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
+					1'd0,		// Wr. Burst Len (1=Single)
+					2'd0,		// Op Mode
+					3'd2+mode[0],	// CL
+					1'b0,		// Burst Type (0=Seq;1=Inter)
+					3'd0+bs		// Burst Length
+					});
+*/
+
+	m0.wb_wr1(`REG_BASE + `TMS5,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd8,		// Trfc [27:24]
+					4'd3,		// Trp [23:20]
+					3'd3,		// Trcd [19:17]
+					2'd2,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
+					1'd0,		// Wr. Burst Len (1=Single)
+					2'd0,		// Op Mode
+					3'd2+mode[0],	// CL
+					1'b0,		// Burst Type (0=Seq;1=Inter)
+					3'd0+bs		// Burst Length
+					});
+
+if(!verbose)	$display("Mode: %b", mode);
+for(del=0;del<del_max;del=del+1)
+for(size=sz_inc;size<sz_max;size=size+sz_inc)
+   begin
+	m0.mem_fill;
+
+	if(verbose)	$display("Mode: %b, Size: %0d, Delay: %0d", mode,  size, del);
+
+	if(write)	m0.wb_wr_mult(`MEM_BASE +        0, 4'hf, del, size);
+	m0.wb_rd_mult(`MEM_BASE +        0, 4'hf, del, size);
+
+	if(write)	m0.wb_wr_mult(`MEM_BASE + size*1*4, 4'hf, del, size);
+	m0.wb_rd_mult(`MEM_BASE + size*1*4, 4'hf, del, size);
+
+	if(write)	m0.wb_wr_mult(`MEM_BASE + size*2*4, 4'hf, del, size);
+	m0.wb_rd_mult(`MEM_BASE + size*2*4, 4'hf, del, size);
+
+	if(write)	m0.wb_wr_mult(`MEM_BASE + size*3*4, 4'hf, del, size);
+	m0.wb_rd_mult(`MEM_BASE + size*3*4, 4'hf, del, size);
+
+	for(n=0;n<(size*4);n=n+1)
+	   begin
+		memd = {sdram1b.Bank0[n], sdram1a.Bank0[n]};
+
+		if((memd !== m0.rd_mem[n]) |
+			(|memd === 1'bx) |
+			(|m0.rd_mem[n] === 1'bx)	 )
+		   begin
+			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
+			n, memd, m0.rd_mem[n],  $time);
+			error_cnt = error_cnt + 1;
+		   end
+	   end
+   end
+
+end
+
+show_errors;
+$display("*****************************************************");
+$display("*** Test DONE ...                                 ***");
+$display("*****************************************************\n\n");
+end
+endtask
 
 
 task sdram_rd1;
@@ -120,11 +381,11 @@ endcase
 
 size = 4;
 del = 1;
-mode = 2;
+mode = 9;
 write = 0;
 //force sdram0.Debug = 1;
 
-for(mode=0;mode<10;mode=mode+1)
+//for(mode=0;mode<10;mode=mode+1)
 begin
 	sdram0.mem_fill(1024);
 	//sdram0p.mem_fill(1024);
@@ -145,12 +406,29 @@ begin
 	   4: sz_inc = 1;
 	endcase
 
+
+/*
 	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 					4'd0,		// RESERVED [31:28]
 					4'd7,		// Trfc [27:24]
 					4'd2,		// Trp [23:20]
 					3'd2,		// Trcd [19:17]
 					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
+					1'd0,		// Wr. Burst Len (1=Single)
+					2'd0,		// Op Mode
+					3'd2+mode[0],	// CL
+					1'b0,		// Burst Type (0=Seq;1=Inter)
+					3'd0+bs		// Burst Length
+					});
+*/
+
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd8,		// Trfc [27:24]
+					4'd3,		// Trp [23:20]
+					3'd3,		// Trcd [19:17]
+					2'd2,		// Twr [16:15]
 					5'd0,		// RESERVED [14:10]
 					1'd0,		// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
@@ -254,11 +532,11 @@ endcase
 
 size = 1;
 del = 0;
-mode = 0;
+mode = 19;
 read = 1;
 //force sdram0.Debug = 1;
 
-for(mode=0;mode<20;mode=mode+1)
+//for(mode=0;mode<20;mode=mode+1)
 begin
 	sdram0.mem_fill(1024);
 
@@ -297,8 +575,8 @@ begin
 
 if(!verbose)	$display("Mode: %b", mode);
 
-for(del=0;del<del_max;del=del+1)
-for(size=sz_inc;size<sz_max;size=size+sz_inc)
+//for(del=0;del<del_max;del=del+1)
+//for(size=sz_inc;size<sz_max;size=size+sz_inc)
    begin
 	m0.mem_fill;
 
@@ -1135,7 +1413,7 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 	m0.wb_rd_mult(`MEM_BASE + (page_size*3*4) + size*7*4, 4'hf, del, size);
 
 	for(m=0;m<4;m=m+1)
-	for(n=0;n<(size*2);n=n+1)
+	for(n=0;n<(size*2);n=n+1)                                                             
 	   begin
 		adr = (m * page_size) + (m*(size*2)) + n;
 
@@ -1436,9 +1714,9 @@ m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0421 | (bas[0]<<9));
 m0.wb_wr1(`REG_BASE + `CSC1,	4'hf, 32'h0020_0021 | (bas[0]<<9));
 m0.wb_wr1(`REG_BASE + `CSC2,	4'hf, 32'h0040_0421 | (bas[0]<<9));
 
-size = 15;
-del = 3;
-mode = 9;
+size = 2;
+del = 0;
+mode = 8;
 write = 1;
 if(0)
    begin
@@ -1517,6 +1795,7 @@ if(!verbose)	$display("BAS: %0d, Mode: %b", bas, mode);
 
 for(del=0;del<del_max;del=del+1)
 for(size=sz_inc;size<sz_max;size=size+sz_inc)
+//for(size=sz_inc;size<8;size=size+sz_inc)
    begin
 	m0.mem_fill;
 	if(verbose)	$display("BAS: %0d, Mode: %b, Size: %0d, Delay: %0d",
@@ -1635,7 +1914,7 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 			(|m0.rd_mem[(m*size*6)+(s*size*2)+n] === 1'bx) )
 		   begin
 			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-			(m*size*2)+n, data, m0.rd_mem[(m*size*2)+n],  $time);
+			(m*size*6)+(s*size*2)+n, data, m0.rd_mem[(m*size*6)+(s*size*2)+n],  $time);
 			error_cnt = error_cnt + 1;
 			if(error_cnt > 25)	$finish;
 		   end
@@ -1751,8 +2030,8 @@ case(quick)
 endcase
 
 size = 5;
-del = 0;
-mode = 0;
+del = 1;
+mode = 6;
 read = 1;
 
 if(0)
@@ -1936,8 +2215,6 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 			$display("ERROR: WR Data[%0d-%0d] Mismatch: Expected: %x, Got: %x (%0t)",
 			s, (m*size*2)+n, data, m0.wr_mem[(m*size*2)+n],  $time);
 			error_cnt = error_cnt + 1;
-
-			if(error_cnt > 25)	$finish;
 		   end
 
 	   end
@@ -1994,13 +2271,14 @@ case(quick)
  2: del_max = 4;
 endcase
 
-size = 1;
-del = 0;
+size = 16;
+del = 4;
 mode = 0;
 read = 1;
-write = 0;
+write = 1;
 
 
+sz_max = 6;
 for(mode=0;mode<3;mode=mode+1)
 begin
 
@@ -2015,8 +2293,8 @@ endcase
 repeat(10)	@(posedge clk);
 if(!verbose)	$display("Mode: %b", mode);
 
-for(del=0;del<del_max;del=del+1)
-for(size=1;size<sz_max;size=size+1)
+//for(del=0;del<del_max;del=del+1)
+//for(size=1;size<sz_max;size=size+1)
    begin
 	m0.mem_fill;
 	for(n=0;n<1024;n=n+1)
@@ -2353,6 +2631,7 @@ end
 endtask
 
 
+`ifdef SRAM
 task sram_rd1;
 
 integer		n,m,read,write;
@@ -2454,7 +2733,7 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0803);
 
 size = 4;
-del = 26;
+del = 4;
 mode = 0;
 read = 1;
 write = 1;
@@ -2520,7 +2799,7 @@ $display("*****************************************************\n\n");
 
 end
 endtask
-
+`endif
 
 
 task	scs_rdwr1;
@@ -2761,6 +3040,7 @@ end
 endtask
 
 
+`ifdef SRAM
 task sram_wp;
 
 integer		n,m,read,write;
@@ -2848,6 +3128,7 @@ $display("*****************************************************\n\n");
 
 end
 endtask
+`endif
 
 
 task sdram_rmw1;
@@ -2907,14 +3188,14 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 					3'd3	// Burst Length
 					});
 
-kro = 0;
+kro = 1;
 for(kro=0;kro<2;kro=kro+1)	// Don't Need this for this test
 begin
 m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (kro[0]<<10));
 
-size = 4;
+size = 2;
 del = 0;
-mode = 0;
+mode = 8;
 
 //force sdram0.Debug = 1;
 
@@ -3195,7 +3476,7 @@ end
 endtask
 
 
-
+`ifdef SRAM
 task sram_rmw1;
 
 integer		n,m,read,write;
@@ -3325,11 +3606,11 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0003);
 
 size = 4;
-del = 2;
+del = 4;
 
 repeat(1)	@(posedge clk);
 
-for(del=0;del<16;del=del+1)
+//for(del=0;del<16;del=del+1)
 for(size=1;size<18;size=size+1)
    begin
 	m0.mem_fill;
@@ -3391,4 +3672,5 @@ $display("*****************************************************\n\n");
 end
 endtask
 
+`endif
 
