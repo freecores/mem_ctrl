@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: test_bench_top.v,v 1.4 2001-11-11 01:52:02 rudi Exp $
+//  $Id: test_bench_top.v,v 1.5 2001-11-13 00:45:15 rudi Exp $
 //
-//  $Date: 2001-11-11 01:52:02 $
-//  $Revision: 1.4 $
+//  $Date: 2001-11-13 00:45:15 $
+//  $Revision: 1.5 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.4  2001/11/11 01:52:02  rudi
+//
+//               Minor fixes to testbench ...
+//
 //               Revision 1.3  2001/09/02 02:29:43  rudi
 //
 //               Fixed the TMS register setup to be tight and correct.
@@ -230,7 +234,7 @@ initial
 
 	// HERE IS WHERE THE TEST CASES GO ...
 
-if(0)	// Full Regression Run
+if(1)	// Full Regression Run
    begin
 $display(" ......................................................");
 $display(" :                                                    :");
@@ -275,7 +279,7 @@ $display(" :....................................................:");
 
    end
 else
-if(0)	// Quick Regression Run
+if(1)	// Quick Regression Run
    begin
 $display(" ......................................................");
 $display(" :                                                    :");
@@ -423,7 +427,7 @@ $display(" :....................................................:");
 	mc_reset;
 end
 //else
-if(0)	// Bus Request testing
+if(1)	// Bus Request testing
 begin
 $display(" ......................................................");
 $display(" :                                                    :");
@@ -492,6 +496,7 @@ $display(" :    Test Debug Testing ...                          :");
 $display(" :....................................................:");
 	//verbose = 0;
 	//boot(2);
+/*
 
 `define	CSR		8'h00
 `define	POC		8'h04
@@ -523,7 +528,7 @@ $display(" :....................................................:");
 	m0.wb_rd1(`REG_BASE + `TMS2,	4'hf, data);
 	m0.wb_rd1(`REG_BASE + `CSC3,	4'hf, data);
 	m0.wb_rd1(`REG_BASE + `TMS3,	4'hf, data);
-
+*/
 
 
 
@@ -558,6 +563,7 @@ $display(" :....................................................:");
 
 	//sdram_rd5(2);
 	//sdram_wr5(2);
+	sdram_wr4(2);
 /*
 	sdram_rd1(2);
 	sdram_wr1(2);

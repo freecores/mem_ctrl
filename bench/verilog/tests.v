@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: tests.v,v 1.4 2001-11-11 01:52:03 rudi Exp $
+//  $Id: tests.v,v 1.5 2001-11-13 00:45:19 rudi Exp $
 //
-//  $Date: 2001-11-11 01:52:03 $
-//  $Revision: 1.4 $
+//  $Date: 2001-11-13 00:45:19 $
+//  $Revision: 1.5 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.4  2001/11/11 01:52:03  rudi
+//
+//               Minor fixes to testbench ...
+//
 //               Revision 1.3  2001/09/02 02:29:43  rudi
 //
 //               Fixed the TMS register setup to be tight and correct.
@@ -385,7 +389,7 @@ mode = 9;
 write = 0;
 //force sdram0.Debug = 1;
 
-//for(mode=0;mode<10;mode=mode+1)
+for(mode=0;mode<10;mode=mode+1)
 begin
 	sdram0.mem_fill(1024);
 	//sdram0p.mem_fill(1024);
@@ -536,7 +540,7 @@ mode = 19;
 read = 1;
 //force sdram0.Debug = 1;
 
-//for(mode=0;mode<20;mode=mode+1)
+for(mode=0;mode<20;mode=mode+1)
 begin
 	sdram0.mem_fill(1024);
 
@@ -575,8 +579,8 @@ begin
 
 if(!verbose)	$display("Mode: %b", mode);
 
-//for(del=0;del<del_max;del=del+1)
-//for(size=sz_inc;size<sz_max;size=size+sz_inc)
+for(del=0;del<del_max;del=del+1)
+for(size=sz_inc;size<sz_max;size=size+sz_inc)
    begin
 	m0.mem_fill;
 
@@ -1511,9 +1515,9 @@ case(quick)
  2: del_max = 4;
 endcase
 
-size = 15;
+size = 1;
 del = 0;
-mode = 19;
+mode = 8;
 read = 1;
 
 for(mode=0;mode<20;mode=mode+1)

@@ -182,6 +182,28 @@ module mt48lc16m16a2 (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
         RAS_clk = 1'b0;
     end
 
+
+
+integer n;
+
+task mem_fill;
+input	size;
+
+integer		size;
+
+begin
+	for(n=0;n<size;n=n+1)
+	   begin
+		Bank0[n] = $random;
+		Bank1[n] = $random;
+		Bank2[n] = $random;
+		Bank3[n] = $random;
+	   end
+
+end
+endtask
+
+
     // RAS Clk for checking tWR
     always RAS_clk = #0.5 ~RAS_clk;
 
