@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_defines.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_defines.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-08-10 08:16:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.3  2001/06/12 15:19:49  rudi
 //
 //
@@ -82,13 +88,13 @@
 // the internal register file is selected.
 // This should be a simple address decoder. "wb_addr_i" is the
 // WISHBONE address bus (32 bits wide).
-`define	REG_SEL		(wb_addr_i[31:29] == 3'h7)
+`define	MC_REG_SEL		(wb_addr_i[31:29] == 3'h7)
 
 // This define selects how the WISHBONE interface determines if
 // the memory is selected.
 // This should be a simple address decoder. "wb_addr_i" is the
 // WISHBONE address bus (32 bits wide).
-`define	MEM_SEL		(wb_addr_i[31:29] == 3'h0)
+`define	MC_MEM_SEL		(wb_addr_i[31:29] == 3'h0)
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -96,23 +102,23 @@
 //
 
 // Defines which chip select is used for Power On booting
-`define DEF_SEL		3'h3
+`define MC_DEF_SEL		3'h3
 
 // Defines the default (reset) TMS value for the DEF_SEL chip select
-`define	DEF_POR_TMS 	32'hffff_ffff
+`define	MC_DEF_POR_TMS 	32'hffff_ffff
 
 
 /////////////////////////////////////////////////////////////////////
 //
 // Define how many Chip Selects to Implement
 //
-`define HAVE_CS1	1
-`define HAVE_CS2	1
-`define HAVE_CS3	1
-`define HAVE_CS4	1
-`define HAVE_CS5	1
-`define HAVE_CS6	1
-`define HAVE_CS7	1
+`define MC_HAVE_CS1	1
+`define MC_HAVE_CS2	1
+`define MC_HAVE_CS3	1
+`define MC_HAVE_CS4	1
+`define MC_HAVE_CS5	1
+`define MC_HAVE_CS6	1
+`define MC_HAVE_CS7	1
 
 
 /////////////////////////////////////////////////////////////////////
@@ -122,7 +128,7 @@
 // Number of Refresh Cycles to perform during SDRAM initialization.
 // This varies between SDRAM manufacturer. Typically this value is
 // between 2 and 8. This number must be smaller than 16.
-`define	INIT_RFRC_CNT	2
+`define	MC_INIT_RFRC_CNT	2
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -132,12 +138,12 @@
 // after power on. If the Memory Controller shall stall after power on to
 // allow SDRAMs to finish the initialization process uncomment the below
 // define statement
-`define	POR_DELAY	1
+`define	MC_POR_DELAY	1
 
 // This value defines how many MEM_CLK cycles the Memory Controller should
 // stall. Default is 2.5uS. At a 10nS MEM_CLK cycle time, this would 250
 // cycles.
-`define	POR_DELAY_VAL	8'd250
+`define	MC_POR_DELAY_VAL	8'd250
 
 
 // ===============================================================
@@ -147,15 +153,31 @@
 // ===============================================================
 
 // Register settings encodings
-`define BW_8	2'h0
-`define BW_16	2'h1
-`define BW_32	2'h2
+`define MC_BW_8			2'h0
+`define MC_BW_16		2'h1
+`define MC_BW_32		2'h2
 
-`define MEM_TYPE_SDRAM	3'h0
-`define MEM_TYPE_SRAM	3'h1
-`define MEM_TYPE_ACS	3'h2
-`define MEM_TYPE_SCS	3'h3
+`define MC_MEM_TYPE_SDRAM	3'h0
+`define MC_MEM_TYPE_SRAM	3'h1
+`define MC_MEM_TYPE_ACS		3'h2
+`define MC_MEM_TYPE_SCS		3'h3
 
-`define MEM_SIZE_64	2'h0
-`define MEM_SIZE_128	2'h1
-`define MEM_SIZE_256	2'h2
+`define MC_MEM_SIZE_64		2'h0
+`define MC_MEM_SIZE_128		2'h1
+`define MC_MEM_SIZE_256		2'h2
+
+// Command Valid, Ras_, Cas_, We_
+`define MC_CMD_NOP		4'b0111
+`define MC_CMD_PC		4'b1010
+`define MC_CMD_ACT		4'b1011
+`define MC_CMD_WR		4'b1100
+`define MC_CMD_RD		4'b1101
+`define MC_CMD_BT		4'b1110
+`define MC_CMD_ARFR		4'b1001
+`define MC_CMD_LMR		4'b1000
+`define MC_CMD_XRD		4'b1111
+`define MC_CMD_XWR		4'b1110
+
+`define MC_SINGLE_BANK		1'b0
+`define MC_ALL_BANKS		1'b1
+

@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_top.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_top.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-08-10 08:16:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.3  2001/06/12 15:19:49  rudi
 //
 //
@@ -76,20 +82,22 @@
 
 `include "mc_defines.v"
 
-module mc_top(clk, rst,
+module mc_top(clk_i, rst_i,
 
 	wb_data_i, wb_data_o, wb_addr_i, wb_sel_i, wb_we_i, wb_cyc_i,
 	wb_stb_i, wb_ack_o, wb_err_o, 
 
-	susp_req, resume_req, suspended, poc,
+	susp_req_i, resume_req_i, suspended_o, poc_o,
 
-	mc_clk, mc_br, mc_bg, mc_ack,
-	mc_addr, mc_data_i, mc_data_o, mc_dp_i, mc_dp_o, mc_data_oe,
-	mc_dqm, mc_oe_, mc_we_, mc_cas_, mc_ras_, mc_cke_, mc_cs_, mc_sts,
-	mc_rp_, mc_vpen, mc_adsc_, mc_adv_, mc_zz, mc_c_oe
+	mc_clk_i, mc_br_pad_i, mc_bg_pad_o, mc_ack_pad_i,
+	mc_addr_pad_o, mc_data_pad_i, mc_data_pad_o, mc_dp_pad_i,
+	mc_dp_pad_o, mc_doe_pad_doe_o, mc_dqm_pad_o, mc_oe_pad_o_,
+	mc_we_pad_o_, mc_cas_pad_o_, mc_ras_pad_o_, mc_cke_pad_o_,
+	mc_cs_pad_o_, mc_sts_pad_i, mc_rp_pad_o_, mc_vpen_pad_o,
+	mc_adsc_pad_o_, mc_adv_pad_o_, mc_zz_pad_o, mc_coe_pad_coe_o
 	);
 
-input		clk, rst;
+input		clk_i, rst_i;
 
 // --------------------------------------
 // WISHBONE SLAVE INTERFACE 
@@ -105,39 +113,39 @@ output		wb_err_o;
 
 // --------------------------------------
 // Suspend Resume Interface
-input		susp_req;
-input		resume_req;
-output		suspended;
+input		susp_req_i;
+input		resume_req_i;
+output		suspended_o;
 
 // POC
-output	[31:0]	poc;
+output	[31:0]	poc_o;
 
 // --------------------------------------
 // Memory Bus Signals
-input		mc_clk;
-input		mc_br;
-output		mc_bg;
-input		mc_ack;
-output	[23:0]	mc_addr;
-input	[31:0]	mc_data_i;
-output	[31:0]	mc_data_o;
-input	[3:0]	mc_dp_i;
-output	[3:0]	mc_dp_o;
-output		mc_data_oe;
-output	[3:0]	mc_dqm;
-output		mc_oe_;
-output		mc_we_;
-output		mc_cas_;
-output		mc_ras_;
-output		mc_cke_;
-output	[7:0]	mc_cs_;
-input		mc_sts;
-output		mc_rp_;
-output		mc_vpen;
-output		mc_adsc_;
-output		mc_adv_;
-output		mc_zz;
-output		mc_c_oe;
+input		mc_clk_i;
+input		mc_br_pad_i;
+output		mc_bg_pad_o;
+input		mc_ack_pad_i;
+output	[23:0]	mc_addr_pad_o;
+input	[31:0]	mc_data_pad_i;
+output	[31:0]	mc_data_pad_o;
+input	[3:0]	mc_dp_pad_i;
+output	[3:0]	mc_dp_pad_o;
+output		mc_doe_pad_doe_o;
+output	[3:0]	mc_dqm_pad_o;
+output		mc_oe_pad_o_;
+output		mc_we_pad_o_;
+output		mc_cas_pad_o_;
+output		mc_ras_pad_o_;
+output		mc_cke_pad_o_;
+output	[7:0]	mc_cs_pad_o_;
+input		mc_sts_pad_i;
+output		mc_rp_pad_o_;
+output		mc_vpen_pad_o;
+output		mc_adsc_pad_o_;
+output		mc_adv_pad_o_;
+output		mc_zz_pad_o;
+output		mc_coe_pad_coe_o;
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -154,9 +162,10 @@ wire		mem_wb_ack_o, rf_wb_ack_o;
 
 // --------------------------------------
 // Suspend Resume Interface
-wire		susp_req;
-wire		resume_req;
+//wire		susp_req;
+//wire		resume_req;
 wire		susp_sel;
+reg		mc_zz_pad_o;
 
 // Register File Interconnects
 wire	[31:0]	rf_dout;
@@ -235,7 +244,7 @@ initial		// FOR RICHARD TEST BENCH ONLY ...	FIX_ME
   	$shm_open("waves");
 	$shm_probe("AS",mc_top,"AS");
 	$display("INFO: Signal dump enabled ...\n\n");
-	repeat(4000)	@(posedge clk);
+	repeat(4000)	@(posedge clk_i);
 	$finish;
    end
 // synopsys translate_on
@@ -246,14 +255,15 @@ initial		// FOR RICHARD TEST BENCH ONLY ...	FIX_ME
 // Misc Logic
 //
 
-assign mc_rp_ = !suspended & !fs;
-assign mc_zz  = suspended;	
+assign mc_rp_pad_o_ = !suspended_o & !fs;
 
+always @(posedge mc_clk_i)
+	mc_zz_pad_o <= #1 suspended_o;	
 
 assign wb_err_o  = wb_cyc_i & wb_stb_i &
-		(`MEM_SEL ? ((par_err & !wb_we_i) | err | wp_err) : rf_wb_err_o);
-assign wb_data_o = `MEM_SEL ? mem_dout : rf_dout;
-assign wb_ack_o  = `MEM_SEL ? mem_wb_ack_o : rf_wb_ack_o;
+		(`MC_MEM_SEL ? ((par_err & !wb_we_i) | err | wp_err) : rf_wb_err_o);
+assign wb_data_o = `MC_MEM_SEL ? mem_dout : rf_dout;
+assign wb_ack_o  = `MC_MEM_SEL ? mem_wb_ack_o : rf_wb_ack_o;
 
 assign obct_cs =	(rfr_ack | susp_sel) ? cs_need_rfr :
 			(lmr_ack | init_ack) ? spec_req_cs : cs;
@@ -268,8 +278,8 @@ assign csc_s = lmr_sel ? sp_csc : csc;
 //
 
 mc_rf		u0(
-		.clk(		clk		),
-		.rst(		rst		),
+		.clk(		clk_i		),
+		.rst(		rst_i		),
 		.wb_data_i(	wb_data_i	),
 		.rf_dout(	rf_dout		),
 		.wb_addr_i(	wb_addr_i	),
@@ -281,13 +291,13 @@ mc_rf		u0(
 		.wp_err(	wp_err		),
 		.csc(		csc		),
 		.tms(		tms		),
-		.poc(		poc		),
+		.poc(		poc_o		),
 		.sp_csc(	sp_csc		),
 		.sp_tms(	sp_tms		),
 		.cs(		cs		),
-		.mc_data_i(	mc_data_i	),
-		.mc_sts(	mc_sts		),
-		.mc_vpen(	mc_vpen		),
+		.mc_data_i(	mc_data_pad_i	),
+		.mc_sts(	mc_sts_pad_i	),
+		.mc_vpen(	mc_vpen_pad_o 	),
 		.fs(		fs		),
 		.cs_le(		cs_le		),
 		.cs_need_rfr(	cs_need_rfr	),
@@ -301,8 +311,8 @@ mc_rf		u0(
 		);
 
 mc_adr_sel	u1(
-		.clk(		clk		),
-		.csc(		csc		),
+		.clk(		clk_i		),
+		.csc(		csc_s		),
 		.tms(		tms_s		),
 		.wb_stb_i(	wb_stb_i	),
 		.wb_ack_o(	mem_wb_ack_o	),
@@ -324,8 +334,8 @@ mc_adr_sel	u1(
 		);
 
 mc_obct_top	u2(
-		.clk(		clk		),
-		.rst(		rst		),
+		.clk(		clk_i		),
+		.rst(		rst_i		),
 		.cs(		obct_cs		),
 		.row_adr(	row_adr		),
 		.bank_adr(	bank_adr	),
@@ -339,16 +349,16 @@ mc_obct_top	u2(
 		);
 
 mc_dp		u3(
-		.clk(		clk		),
-		.rst(		rst		),
+		.clk(		clk_i		),
+		.rst(		rst_i		),
 		.csc(		csc		),
 		.wb_cyc_i(	wb_cyc_i	),
 		.mem_wb_ack_o(	mem_wb_ack_o 	),
 		.wb_data_i(	wb_data_i	),
 		.wb_data_o(	mem_dout	),
 		.wb_read_go(	wb_read_go	),
-		.mc_data_i(	mc_data_i	),
-		.mc_dp_i(	mc_dp_i		),
+		.mc_data_i(	mc_data_pad_i	),
+		.mc_dp_i(	mc_dp_pad_i	),
 		.mc_data_o(	mc_data_od	),
 		.mc_dp_o(	mc_dp_od	),
 		.dv(		dv		),
@@ -360,8 +370,8 @@ mc_dp		u3(
 		);
 
 mc_refresh	u4(
-		.clk(		clk		),
-		.rst(		rst		),
+		.clk(		clk_i		),
+		.rst(		rst_i		),
 		.cs_need_rfr(	cs_need_rfr	),
 		.ref_int(	ref_int		),
 		.rfr_req(	rfr_req		),
@@ -370,8 +380,8 @@ mc_refresh	u4(
 		);
  
 mc_timing	u5(
-		.clk(		clk		),
-		.rst(		rst		),
+		.clk(		clk_i		),
+		.rst(		rst_i		),
 		.wb_cyc_i(	wb_cyc_i	),
 		.wb_we_i(	wb_we_i		),
 		.wb_read_go(	wb_read_go	),
@@ -380,11 +390,10 @@ mc_timing	u5(
 		.wb_wait(	wb_wait		),
 		.mem_ack(	mem_ack		),
 		.err(		err		),
-		.susp_req(	susp_req	),
-		.resume_req(	resume_req	),
-		.suspended(	suspended	),
+		.susp_req(	susp_req_i	),
+		.resume_req(	resume_req_i	),
+		.suspended(	suspended_o	),
 		.susp_sel(	susp_sel	),
-		.mc_clk(	mc_clk		),
 		.mc_br(		mc_br_r		),
 		.mc_bg(		mc_bg_d		),
 		.mc_ack(	mc_ack_r	),
@@ -397,7 +406,7 @@ mc_timing	u5(
 		.cs_en(		cs_en		),
 		.mc_adsc(	mc_adsc_d	),
 		.mc_adv(	mc_adv_d	),
-		.mc_c_oe(	mc_c_oe		),
+		.mc_c_oe(	mc_coe_pad_coe_o),
 		.wb_cycle(	wb_cycle	),
 		.wr_cycle(	wr_cycle	),
 		.csc(		csc_s		),
@@ -428,8 +437,8 @@ mc_timing	u5(
 		);
 
 mc_wb_if	u6(
-		.clk(		clk		),
-		.rst(		rst		),
+		.clk(		clk_i		),
+		.rst(		rst_i		),
 		.wb_addr_i(	wb_addr_i	),
 		.wb_cyc_i(	wb_cyc_i	),
 		.wb_stb_i(	wb_stb_i	),
@@ -445,30 +454,30 @@ mc_wb_if	u6(
 		);
 
 mc_mem_if	u7(
-		.clk(		clk		),
-		.rst(		rst		),
-		.mc_clk(	mc_clk		),
-		.mc_br(		mc_br		),
-		.mc_bg(		mc_bg		),
-		.mc_addr(	mc_addr		),
-		.mc_data_o(	mc_data_o	),
-		.mc_dp_o(	mc_dp_o		),
-		.mc_data_oe(	mc_data_oe	),
-		.mc_dqm(	mc_dqm		),
-		.mc_oe_(	mc_oe_		),
-		.mc_we_(	mc_we_		),
-		.mc_cas_(	mc_cas_		),
-		.mc_ras_(	mc_ras_		),
-		.mc_cke_(	mc_cke_		),
-		.mc_cs_(	mc_cs_		),
-		.mc_adsc_(	mc_adsc_	),
-		.mc_adv_(	mc_adv_		),
+		.clk(		clk_i		),
+		.rst(		rst_i		),
+		.mc_clk(	mc_clk_i	),
+		.mc_br(		mc_br_pad_i	),
+		.mc_bg(		mc_bg_pad_o	),
+		.mc_addr(	mc_addr_pad_o	),
+		.mc_data_o(	mc_data_pad_o	),
+		.mc_dp_o(	mc_dp_pad_o	),
+		.mc_data_oe(	mc_doe_pad_doe_o),
+		.mc_dqm(	mc_dqm_pad_o	),
+		.mc_oe_(	mc_oe_pad_o_	),
+		.mc_we_(	mc_we_pad_o_	),
+		.mc_cas_(	mc_cas_pad_o_	),
+		.mc_ras_(	mc_ras_pad_o_	),
+		.mc_cke_(	mc_cke_pad_o_	),
+		.mc_cs_(	mc_cs_pad_o_	),
+		.mc_adsc_(	mc_adsc_pad_o_	),
+		.mc_adv_(	mc_adv_pad_o_	),
 		.mc_br_r(	mc_br_r		),
 		.mc_bg_d(	mc_bg_d		),
 		.mc_data_od(	mc_data_od	),
 		.mc_dp_od(	mc_dp_od	),
 		.mc_addr_d(	mc_addr_d	),
-		.mc_ack(	mc_ack		),
+		.mc_ack(	mc_ack_pad_i	),
 		.we_(		we_		),
 		.ras_(		ras_		),
 		.cas_(		cas_		),
@@ -483,7 +492,7 @@ mc_mem_if	u7(
 		.cs(		cs		),
 		.data_oe(	data_oe		),
 		.susp_sel(	susp_sel	),
-		.mc_c_oe(	mc_c_oe		),
+		.mc_c_oe(	mc_coe_pad_coe_o),
 		.mc_ack_r(	mc_ack_r	),
 		.oe_(		oe_		),
 		.wb_stb_i(	wb_stb_i	),

@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: tests.v,v 1.1 2001-07-29 07:34:40 rudi Exp $
+//  $Id: tests.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:40 $
-//  $Revision: 1.1 $
+//  $Date: 2001-08-10 08:16:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:40  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.1.1.1  2001/05/13 09:36:38  rudi
 //               Created Directory Structure
 //
@@ -98,9 +104,9 @@ case(quick)
  2: del_max = 4;
 endcase
 
-size = 4;
+size = 8;
 del = 0;
-mode = 0;
+mode = 8;
 write = 1;
 //force sdram0.Debug = 1;
 
@@ -2247,7 +2253,7 @@ endtask
 task sram_rd1;
 
 integer		n,m,read,write;
-integer		del, size;
+integer		d2, del, size;
 reg	[31:0]	data;
 begin
 
@@ -2262,7 +2268,7 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `TMS4,	4'hf, 32'hffff_ffff);
 	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0003);
 
-size = 1;
+size = 4;
 del = 0;
 read = 1;
 write = 0;
@@ -3010,7 +3016,7 @@ m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (kro[0]<<10));
 
 size = 4;
 del = 2;
-mode = 7;
+mode = 9;
 
 //force sdram0.Debug = 1;
 

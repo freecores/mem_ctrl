@@ -38,16 +38,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_dp.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_dp.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-08-10 08:16:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.2  2001/06/03 11:37:17  rudi
 //
 //
@@ -132,10 +138,10 @@ assign pen       = csc[11];
 //
 
 always @(posedge clk)
-	if(mem_type == `MEM_TYPE_SDRAM)	wb_data_o <= #1 rd_fifo_out[31:0];
+	if(mem_type == `MC_MEM_TYPE_SDRAM)	wb_data_o <= #1 rd_fifo_out[31:0];
 	else
-	if(mem_type == `MEM_TYPE_SRAM)	wb_data_o <= #1 rd_fifo_out[31:0];
-	else				wb_data_o <= #1 mc_data_d;
+	if(mem_type == `MC_MEM_TYPE_SRAM)	wb_data_o <= #1 rd_fifo_out[31:0];
+	else					wb_data_o <= #1 mc_data_d;
 
 always @(posedge clk)
 	mc_data_del <= #1 {mc_dp_i, mc_data_i};
@@ -158,7 +164,7 @@ mc_rd_fifo u0(
 //
 
 always @(posedge clk)
-	if(mem_wb_ack_o | (mem_type != `MEM_TYPE_SDRAM) )
+	if(mem_wb_ack_o | (mem_type != `MC_MEM_TYPE_SDRAM) )
 		mc_data_o <= #1 wb_data_i;
 
 ////////////////////////////////////////////////////////////////////
@@ -170,18 +176,18 @@ always @(posedge clk)
 	if(pack_le0)				byte0 <= #1 mc_data_i[7:0];
 
 always @(posedge clk)
-	if(pack_le1 & (bus_width == `BW_8))	byte1 <= #1 mc_data_i[7:0];
+	if(pack_le1 & (bus_width == `MC_BW_8))	byte1 <= #1 mc_data_i[7:0];
 	else
-	if(pack_le0 & (bus_width == `BW_16))	byte1 <= #1 mc_data_i[15:8];
+	if(pack_le0 & (bus_width == `MC_BW_16))	byte1 <= #1 mc_data_i[15:8];
 
 always @(posedge clk)
 	if(pack_le2)				byte2 <= #1 mc_data_i[7:0];
 
 always @(bus_width or mc_data_i or byte0 or byte1 or byte2)
-	if(bus_width == `BW_8)	mc_data_d = {mc_data_i[7:0], byte2, byte1, byte0};
+	if(bus_width == `MC_BW_8)	mc_data_d = {mc_data_i[7:0], byte2, byte1, byte0};
 	else
-	if(bus_width == `BW_16)	mc_data_d = {mc_data_i[15:0], byte1, byte0};
-	else			mc_data_d = mc_data_i;
+	if(bus_width == `MC_BW_16)	mc_data_d = {mc_data_i[15:0], byte1, byte0};
+	else				mc_data_d = mc_data_i;
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -189,7 +195,7 @@ always @(bus_width or mc_data_i or byte0 or byte1 or byte2)
 //
 
 always @(posedge clk)
-	if(mem_wb_ack_o | (mem_type != `MEM_TYPE_SDRAM) )
+	if(mem_wb_ack_o | (mem_type != `MC_MEM_TYPE_SDRAM) )
 		mc_dp_o <= #1	{ ^wb_data_i[31:24], ^wb_data_i[23:16],
 				    ^wb_data_i[15:08], ^wb_data_i[07:00] };
 

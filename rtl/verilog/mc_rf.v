@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_rf.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_rf.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-08-10 08:16:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.3  2001/06/12 15:19:49  rudi
 //
 //
@@ -208,7 +214,7 @@ assign csc_mask = {21'h0, csc_mask_r};
 assign wb_err_o = 1'b0;
 
 always @(posedge clk)
-	if(wb_cyc_i & wb_stb_i & `REG_SEL & !wb_we_i)
+	if(wb_cyc_i & wb_stb_i & `MC_REG_SEL & !wb_we_i)
 	case(wb_addr_i[6:2])		// synopsys full_case parallel_case
 	   5'h0:	rf_dout <= #1 csr;
 	   5'h1:	rf_dout <= #1 poc;
@@ -237,7 +243,7 @@ always @(posedge clk)
 // WISHBONE Register Write logic
 //
 
-assign rf_we = `REG_SEL & wb_we_i & wb_cyc_i & wb_stb_i;
+assign rf_we = `MC_REG_SEL & wb_we_i & wb_cyc_i & wb_stb_i;
 
 always @(posedge clk or negedge rst)
 	if(!rst)	csr_r2 <= #1 8'h0;
@@ -273,7 +279,7 @@ always @(posedge clk)
 //
 
 always @(posedge clk)
-	ack_r <= #1 `REG_SEL & wb_cyc_i & wb_stb_i & !ack_r & !wb_ack_o;
+	ack_r <= #1 `MC_REG_SEL & wb_cyc_i & wb_stb_i & !ack_r & !wb_ack_o;
 
 always @(posedge clk)
 	wb_ack_o <= #1 ack_r;
@@ -353,14 +359,14 @@ always @(posedge clk)
 	   3'h7: sp_tms <= #1 tms7;
 	endcase
 
-assign	cs_need_rfr[0] = csc0[0] & (csc0[3:1] == `MEM_TYPE_SDRAM);
-assign	cs_need_rfr[1] = csc1[0] & (csc1[3:1] == `MEM_TYPE_SDRAM);
-assign	cs_need_rfr[2] = csc2[0] & (csc2[3:1] == `MEM_TYPE_SDRAM);
-assign	cs_need_rfr[3] = csc3[0] & (csc3[3:1] == `MEM_TYPE_SDRAM);
-assign	cs_need_rfr[4] = csc4[0] & (csc4[3:1] == `MEM_TYPE_SDRAM);
-assign	cs_need_rfr[5] = csc5[0] & (csc5[3:1] == `MEM_TYPE_SDRAM);
-assign	cs_need_rfr[6] = csc6[0] & (csc6[3:1] == `MEM_TYPE_SDRAM);
-assign	cs_need_rfr[7] = csc7[0] & (csc7[3:1] == `MEM_TYPE_SDRAM);
+assign	cs_need_rfr[0] = csc0[0] & (csc0[3:1] == `MC_MEM_TYPE_SDRAM);
+assign	cs_need_rfr[1] = csc1[0] & (csc1[3:1] == `MC_MEM_TYPE_SDRAM);
+assign	cs_need_rfr[2] = csc2[0] & (csc2[3:1] == `MC_MEM_TYPE_SDRAM);
+assign	cs_need_rfr[3] = csc3[0] & (csc3[3:1] == `MC_MEM_TYPE_SDRAM);
+assign	cs_need_rfr[4] = csc4[0] & (csc4[3:1] == `MC_MEM_TYPE_SDRAM);
+assign	cs_need_rfr[5] = csc5[0] & (csc5[3:1] == `MC_MEM_TYPE_SDRAM);
+assign	cs_need_rfr[6] = csc6[0] & (csc6[3:1] == `MC_MEM_TYPE_SDRAM);
+assign	cs_need_rfr[7] = csc7[0] & (csc7[3:1] == `MC_MEM_TYPE_SDRAM);
 
 assign ref_int = csr_r[10:8];
 
@@ -457,7 +463,7 @@ mc_cs_rf #(3'h0) u0(
 		.init_ack(	init_ack0	)
 		);
 
-`ifdef HAVE_CS1
+`ifdef MC_HAVE_CS1
 mc_cs_rf #(3'h1) u1(
 		.clk(		clk		),
 		.rst(		rst		),
@@ -497,7 +503,7 @@ mc_cs_rf_dummy #(3'h1) u1(
 		);
 `endif
 
-`ifdef HAVE_CS2
+`ifdef MC_HAVE_CS2
 mc_cs_rf #(3'h2) u2(
 		.clk(		clk		),
 		.rst(		rst		),
@@ -537,7 +543,7 @@ mc_cs_rf_dummy #(3'h2) u2(
 		);
 `endif
 
-`ifdef HAVE_CS3
+`ifdef MC_HAVE_CS3
 mc_cs_rf #(3'h3) u3(
 		.clk(		clk		),
 		.rst(		rst		),
@@ -577,7 +583,7 @@ mc_cs_rf_dummy #(3'h3) u3(
 		);
 `endif
 
-`ifdef HAVE_CS4
+`ifdef MC_HAVE_CS4
 mc_cs_rf #(3'h4) u4(
 		.clk(		clk		),
 		.rst(		rst		),
@@ -617,7 +623,7 @@ mc_cs_rf_dummy #(3'h4) u4(
 		);
 `endif
 
-`ifdef HAVE_CS5
+`ifdef MC_HAVE_CS5
 mc_cs_rf #(3'h5) u5(
 		.clk(		clk		),
 		.rst(		rst		),
@@ -657,7 +663,7 @@ mc_cs_rf_dummy #(3'h5) u5(
 		);
 `endif
 
-`ifdef HAVE_CS6
+`ifdef MC_HAVE_CS6
 mc_cs_rf #(3'h6) u6(
 		.clk(		clk		),
 		.rst(		rst		),
@@ -697,7 +703,7 @@ mc_cs_rf_dummy #(3'h6) u6(
 		);
 `endif
 
-`ifdef HAVE_CS7
+`ifdef MC_HAVE_CS7
 mc_cs_rf #(3'h7) u7(
 		.clk(		clk		),
 		.rst(		rst		),

@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_adr_sel.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_adr_sel.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-08-10 08:16:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.2  2001/06/12 15:19:49  rudi
 //
 //
@@ -119,11 +125,11 @@ assign bas       = csc[9];
 //
 
 always @(mem_type or wr_hold or sdram_adr or acs_addr or sram_addr or wb_addr_i)
-	if(mem_type == `MEM_TYPE_SDRAM)			mc_addr_d = {9'h0, sdram_adr};
+	if(mem_type == `MC_MEM_TYPE_SDRAM)		mc_addr_d = {9'h0, sdram_adr};
 	else
-	if(mem_type == `MEM_TYPE_ACS)			mc_addr_d = acs_addr;
+	if(mem_type == `MC_MEM_TYPE_ACS)		mc_addr_d = acs_addr;
 	else
-	if((mem_type == `MEM_TYPE_SRAM) & wr_hold)	mc_addr_d = sram_addr;
+	if((mem_type == `MC_MEM_TYPE_SRAM) & wr_hold)	mc_addr_d = sram_addr;
 	else						mc_addr_d = wb_addr_i[25:2];
 
 assign mc_addr = rfr_ack ? {mc_addr_d[23:11], 1'b1, mc_addr_d[9:0]} : mc_addr_d;
@@ -147,9 +153,9 @@ always @(posedge clk)
 	//else
 	if(cs_le)
 		case(bus_width)		// synopsys full_case parallel_case
-		   `BW_8:	acs_addr <= #1 wb_addr_i[23:0];
-		   `BW_16:	acs_addr <= #1 wb_addr_i[24:1];
-		   `BW_32:	acs_addr <= #1 wb_addr_i[25:2];
+		   `MC_BW_8:	acs_addr <= #1 wb_addr_i[23:0];
+		   `MC_BW_16:	acs_addr <= #1 wb_addr_i[24:1];
+		   `MC_BW_32:	acs_addr <= #1 wb_addr_i[25:2];
 		endcase
 	else
 	if(next_adr)		acs_addr <= #1 acs_addr_pl1;
@@ -168,17 +174,17 @@ assign sdram_adr[14:13] = bank_adr;
 always @(posedge clk)
    if(wr_cycle ? wb_ack_o : wb_stb_i)	
 	casex({bus_width, mem_size})		// synopsys full_case parallel_case
-	   {`BW_8, `MEM_SIZE_64}:	col_adr <= #1 {1'h0, wb_addr_i[10:2]};
-	   {`BW_8, `MEM_SIZE_128}:	col_adr <= #1        wb_addr_i[11:2];
-	   {`BW_8, `MEM_SIZE_256}:	col_adr <= #1        wb_addr_i[11:2];
+	   {`MC_BW_8, `MC_MEM_SIZE_64}:		col_adr <= #1 {1'h0, wb_addr_i[10:2]};
+	   {`MC_BW_8, `MC_MEM_SIZE_128}:	col_adr <= #1        wb_addr_i[11:2];
+	   {`MC_BW_8, `MC_MEM_SIZE_256}:	col_adr <= #1        wb_addr_i[11:2];
 
-	   {`BW_16, `MEM_SIZE_64}:	col_adr <= #1 {2'h0, wb_addr_i[09:2]};
-	   {`BW_16, `MEM_SIZE_128}:	col_adr <= #1 {1'h0, wb_addr_i[10:2]};
-	   {`BW_16, `MEM_SIZE_256}:	col_adr <= #1 {1'h0, wb_addr_i[10:2]};
+	   {`MC_BW_16, `MC_MEM_SIZE_64}:	col_adr <= #1 {2'h0, wb_addr_i[09:2]};
+	   {`MC_BW_16, `MC_MEM_SIZE_128}:	col_adr <= #1 {1'h0, wb_addr_i[10:2]};
+	   {`MC_BW_16, `MC_MEM_SIZE_256}:	col_adr <= #1 {1'h0, wb_addr_i[10:2]};
 
-	   {`BW_32, `MEM_SIZE_64}:	col_adr <= #1 {2'h0, wb_addr_i[09:2]};
-	   {`BW_32, `MEM_SIZE_128}:	col_adr <= #1 {2'h0, wb_addr_i[09:2]};
-	   {`BW_32, `MEM_SIZE_256}:	col_adr <= #1 {2'h0, wb_addr_i[09:2]};
+	   {`MC_BW_32, `MC_MEM_SIZE_64}:	col_adr <= #1 {2'h0, wb_addr_i[09:2]};
+	   {`MC_BW_32, `MC_MEM_SIZE_128}:	col_adr <= #1 {2'h0, wb_addr_i[09:2]};
+	   {`MC_BW_32, `MC_MEM_SIZE_256}:	col_adr <= #1 {2'h0, wb_addr_i[09:2]};
 	endcase
 
 always @(posedge clk)
@@ -186,31 +192,31 @@ always @(posedge clk)
      begin
 	if(!bas)
 		casex({bus_width, mem_size})		// synopsys full_case parallel_case
-		   {`BW_8, `MEM_SIZE_64}:	row_adr <= #1 {1'h0, wb_addr_i[24:13]};
-		   {`BW_8, `MEM_SIZE_128}:	row_adr <= #1 {1'h0, wb_addr_i[25:14]};
-		   {`BW_8, `MEM_SIZE_256}:	row_adr <= #1        wb_addr_i[26:14];
+		   {`MC_BW_8, `MC_MEM_SIZE_64}:		row_adr <= #1 {1'h0, wb_addr_i[24:13]};
+		   {`MC_BW_8, `MC_MEM_SIZE_128}:	row_adr <= #1 {1'h0, wb_addr_i[25:14]};
+		   {`MC_BW_8, `MC_MEM_SIZE_256}:	row_adr <= #1        wb_addr_i[26:14];
 	
-		   {`BW_16, `MEM_SIZE_64}:	row_adr <= #1 {1'h0, wb_addr_i[23:12]};
-		   {`BW_16, `MEM_SIZE_128}:	row_adr <= #1 {1'h0, wb_addr_i[24:13]};
-		   {`BW_16, `MEM_SIZE_256}:	row_adr <= #1        wb_addr_i[25:13];
+		   {`MC_BW_16, `MC_MEM_SIZE_64}:	row_adr <= #1 {1'h0, wb_addr_i[23:12]};
+		   {`MC_BW_16, `MC_MEM_SIZE_128}:	row_adr <= #1 {1'h0, wb_addr_i[24:13]};
+		   {`MC_BW_16, `MC_MEM_SIZE_256}:	row_adr <= #1        wb_addr_i[25:13];
 	
-		   {`BW_32, `MEM_SIZE_64}:	row_adr <= #1 {2'h0, wb_addr_i[22:12]};
-		   {`BW_32, `MEM_SIZE_128}:	row_adr <= #1 {1'h0, wb_addr_i[23:12]};
-		   {`BW_32, `MEM_SIZE_256}:	row_adr <= #1        wb_addr_i[24:12];
+		   {`MC_BW_32, `MC_MEM_SIZE_64}:	row_adr <= #1 {2'h0, wb_addr_i[22:12]};
+		   {`MC_BW_32, `MC_MEM_SIZE_128}:	row_adr <= #1 {1'h0, wb_addr_i[23:12]};
+		   {`MC_BW_32, `MC_MEM_SIZE_256}:	row_adr <= #1        wb_addr_i[24:12];
 		endcase
 	else
 		casex({bus_width, mem_size})		// synopsys full_case parallel_case
-		   {`BW_8, `MEM_SIZE_64}:	row_adr <= #1 {1'h0, wb_addr_i[22:11]};
-		   {`BW_8, `MEM_SIZE_128}:	row_adr <= #1 {1'h0, wb_addr_i[23:12]};
-		   {`BW_8, `MEM_SIZE_256}:	row_adr <= #1        wb_addr_i[24:12];
+		   {`MC_BW_8, `MC_MEM_SIZE_64}:		row_adr <= #1 {1'h0, wb_addr_i[22:11]};
+		   {`MC_BW_8, `MC_MEM_SIZE_128}:	row_adr <= #1 {1'h0, wb_addr_i[23:12]};
+		   {`MC_BW_8, `MC_MEM_SIZE_256}:	row_adr <= #1        wb_addr_i[24:12];
 	
-		   {`BW_16, `MEM_SIZE_64}:	row_adr <= #1 {1'h0, wb_addr_i[21:10]};
-		   {`BW_16, `MEM_SIZE_128}:	row_adr <= #1 {1'h0, wb_addr_i[22:11]};
-		   {`BW_16, `MEM_SIZE_256}:	row_adr <= #1        wb_addr_i[23:11];
+		   {`MC_BW_16, `MC_MEM_SIZE_64}:	row_adr <= #1 {1'h0, wb_addr_i[21:10]};
+		   {`MC_BW_16, `MC_MEM_SIZE_128}:	row_adr <= #1 {1'h0, wb_addr_i[22:11]};
+		   {`MC_BW_16, `MC_MEM_SIZE_256}:	row_adr <= #1        wb_addr_i[23:11];
 	
-		   {`BW_32, `MEM_SIZE_64}:	row_adr <= #1 {2'h0, wb_addr_i[20:10]};
-		   {`BW_32, `MEM_SIZE_128}:	row_adr <= #1 {1'h0, wb_addr_i[21:10]};
-		   {`BW_32, `MEM_SIZE_256}:	row_adr <= #1        wb_addr_i[22:10];
+		   {`MC_BW_32, `MC_MEM_SIZE_64}:	row_adr <= #1 {2'h0, wb_addr_i[20:10]};
+		   {`MC_BW_32, `MC_MEM_SIZE_128}:	row_adr <= #1 {1'h0, wb_addr_i[21:10]};
+		   {`MC_BW_32, `MC_MEM_SIZE_256}:	row_adr <= #1        wb_addr_i[22:10];
 		endcase
      end
 
@@ -220,47 +226,47 @@ always @(posedge clk)
      begin
 	if(!bas)
 		casex({bus_width, mem_size})		// synopsys full_case parallel_case
-		   {`BW_8, `MEM_SIZE_64}:	bank_adr <= #1 wb_addr_i[12:11];
-		   {`BW_8, `MEM_SIZE_128}:	bank_adr <= #1 wb_addr_i[13:12];
-		   {`BW_8, `MEM_SIZE_256}:	bank_adr <= #1 wb_addr_i[13:12];
+		   {`MC_BW_8, `MC_MEM_SIZE_64}:		bank_adr <= #1 wb_addr_i[12:11];
+		   {`MC_BW_8, `MC_MEM_SIZE_128}:	bank_adr <= #1 wb_addr_i[13:12];
+		   {`MC_BW_8, `MC_MEM_SIZE_256}:	bank_adr <= #1 wb_addr_i[13:12];
 	
-		   {`BW_16, `MEM_SIZE_64}:	bank_adr <= #1 wb_addr_i[11:10];
-		   {`BW_16, `MEM_SIZE_128}:	bank_adr <= #1 wb_addr_i[12:11];
-		   {`BW_16, `MEM_SIZE_256}:	bank_adr <= #1 wb_addr_i[12:11];
+		   {`MC_BW_16, `MC_MEM_SIZE_64}:	bank_adr <= #1 wb_addr_i[11:10];
+		   {`MC_BW_16, `MC_MEM_SIZE_128}:	bank_adr <= #1 wb_addr_i[12:11];
+		   {`MC_BW_16, `MC_MEM_SIZE_256}:	bank_adr <= #1 wb_addr_i[12:11];
 	
-		   {`BW_32, `MEM_SIZE_64}:	bank_adr <= #1 wb_addr_i[11:10];
-		   {`BW_32, `MEM_SIZE_128}:	bank_adr <= #1 wb_addr_i[11:10];
-		   {`BW_32, `MEM_SIZE_256}:	bank_adr <= #1 wb_addr_i[11:10];
+		   {`MC_BW_32, `MC_MEM_SIZE_64}:	bank_adr <= #1 wb_addr_i[11:10];
+		   {`MC_BW_32, `MC_MEM_SIZE_128}:	bank_adr <= #1 wb_addr_i[11:10];
+		   {`MC_BW_32, `MC_MEM_SIZE_256}:	bank_adr <= #1 wb_addr_i[11:10];
 		endcase
 	else
 		casex({bus_width, mem_size})		// synopsys full_case parallel_case
-		   {`BW_8, `MEM_SIZE_64}:	bank_adr <= #1 wb_addr_i[24:23];
-		   {`BW_8, `MEM_SIZE_128}:	bank_adr <= #1 wb_addr_i[25:24];
-		   {`BW_8, `MEM_SIZE_256}:	bank_adr <= #1 wb_addr_i[26:25];
+		   {`MC_BW_8, `MC_MEM_SIZE_64}:		bank_adr <= #1 wb_addr_i[24:23];
+		   {`MC_BW_8, `MC_MEM_SIZE_128}:	bank_adr <= #1 wb_addr_i[25:24];
+		   {`MC_BW_8, `MC_MEM_SIZE_256}:	bank_adr <= #1 wb_addr_i[26:25];
 	
-		   {`BW_16, `MEM_SIZE_64}:	bank_adr <= #1 wb_addr_i[23:22];
-		   {`BW_16, `MEM_SIZE_128}:	bank_adr <= #1 wb_addr_i[24:23];
-		   {`BW_16, `MEM_SIZE_256}:	bank_adr <= #1 wb_addr_i[25:24];
+		   {`MC_BW_16, `MC_MEM_SIZE_64}:	bank_adr <= #1 wb_addr_i[23:22];
+		   {`MC_BW_16, `MC_MEM_SIZE_128}:	bank_adr <= #1 wb_addr_i[24:23];
+		   {`MC_BW_16, `MC_MEM_SIZE_256}:	bank_adr <= #1 wb_addr_i[25:24];
 	
-		   {`BW_32, `MEM_SIZE_64}:	bank_adr <= #1 wb_addr_i[22:21];
-		   {`BW_32, `MEM_SIZE_128}:	bank_adr <= #1 wb_addr_i[23:22];
-		   {`BW_32, `MEM_SIZE_256}:	bank_adr <= #1 wb_addr_i[24:23];
+		   {`MC_BW_32, `MC_MEM_SIZE_64}:	bank_adr <= #1 wb_addr_i[22:21];
+		   {`MC_BW_32, `MC_MEM_SIZE_128}:	bank_adr <= #1 wb_addr_i[23:22];
+		   {`MC_BW_32, `MC_MEM_SIZE_256}:	bank_adr <= #1 wb_addr_i[24:23];
 		endcase
      end
 
 always @(bus_width or mem_size)
 	casex({bus_width, mem_size})		// synopsys full_case parallel_case
-	   {`BW_8, `MEM_SIZE_64}:	page_size = 11'd512;
-	   {`BW_8, `MEM_SIZE_128}:	page_size = 11'd1024;
-	   {`BW_8, `MEM_SIZE_256}:	page_size = 11'd1024;
+	   {`MC_BW_8, `MC_MEM_SIZE_64}:		page_size = 11'd512;
+	   {`MC_BW_8, `MC_MEM_SIZE_128}:	page_size = 11'd1024;
+	   {`MC_BW_8, `MC_MEM_SIZE_256}:	page_size = 11'd1024;
 
-	   {`BW_16, `MEM_SIZE_64}:	page_size = 11'd256;
-	   {`BW_16, `MEM_SIZE_128}:	page_size = 11'd512;
-	   {`BW_16, `MEM_SIZE_256}:	page_size = 11'd512;
+	   {`MC_BW_16, `MC_MEM_SIZE_64}:	page_size = 11'd256;
+	   {`MC_BW_16, `MC_MEM_SIZE_128}:	page_size = 11'd512;
+	   {`MC_BW_16, `MC_MEM_SIZE_256}:	page_size = 11'd512;
 
-	   {`BW_32, `MEM_SIZE_64}:	page_size = 11'd256;
-	   {`BW_32, `MEM_SIZE_128}:	page_size = 11'd256;
-	   {`BW_32, `MEM_SIZE_256}:	page_size = 11'd256;
+	   {`MC_BW_32, `MC_MEM_SIZE_64}:	page_size = 11'd256;
+	   {`MC_BW_32, `MC_MEM_SIZE_128}:	page_size = 11'd256;
+	   {`MC_BW_32, `MC_MEM_SIZE_256}:	page_size = 11'd256;
 	endcase
 
 endmodule

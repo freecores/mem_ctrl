@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_timing.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_timing.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-08-10 08:16:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.4  2001/06/14 01:57:37  rudi
 //
 //
@@ -93,7 +99,7 @@ module mc_timing(clk, rst,
 		susp_req, resume_req, suspended, susp_sel,
 
 		// Memory Interface
-		mc_clk, data_oe, oe_, we_, cas_, ras_, cke_, 
+		data_oe, oe_, we_, cas_, ras_, cke_, 
 		cs_en, wb_cycle, wr_cycle,
 		mc_br, mc_bg, mc_adsc, mc_adv,
 		mc_c_oe, mc_ack,
@@ -136,7 +142,6 @@ output		suspended;
 output		susp_sel;
 
 // Memory Interface
-input		mc_clk;
 output		data_oe;
 output		oe_;
 output		we_;
@@ -192,21 +197,6 @@ output		init_ack;
 //
 // Defines & Parameters
 //
-
-// Command Valid, Ras_, Cas_, We_
-`define CMD_NOP		4'b0111
-`define CMD_PC		4'b1010
-`define CMD_ACT		4'b1011
-`define CMD_WR		4'b1100
-`define CMD_RD		4'b1101
-`define CMD_BT		4'b1110
-`define CMD_ARFR	4'b1001
-`define CMD_LMR		4'b1000
-`define CMD_XRD		4'b1111
-`define CMD_XWR		4'b1110
-
-`define SINGLE_BANK	1'b0
-`define ALL_BANKS	1'b1
 
 // Number of states: 66
 parameter	[65:0]	// synopsys enum state
@@ -387,6 +377,8 @@ wire		bw8, bw16;
 reg		mc_c_oe_d;
 reg		mc_c_oe;
 
+reg		mc_le;
+
 ////////////////////////////////////////////////////////////////////
 //
 // Aliases
@@ -406,6 +398,10 @@ always @(posedge clk or negedge rst)
 	if(!rst)	mc_c_oe <= #1 1'b0;
 	else		mc_c_oe <= mc_c_oe_d;
 
+always @(posedge clk or negedge rst)
+	if(!rst)	mc_le <= #1 1'b0;
+	else		mc_le <= #1 ~mc_le;
+
 always @(posedge clk)
 	pack_le0 <= #1 pack_le0_d;
 
@@ -415,15 +411,15 @@ always @(posedge clk)
 always @(posedge clk)
 	pack_le2 <= #1 pack_le2_d;
 
-always @(posedge mc_clk)
-	mc_adv_r1 <= #1 mc_adv;
+always @(posedge clk)
+	if(!mc_le)	mc_adv_r1 <= #1 mc_adv;
 
-always @(posedge mc_clk)
-	mc_adv_r <= #1 mc_adv_r1;
+always @(posedge clk)
+	if(!mc_le)	mc_adv_r <= #1 mc_adv_r1;
 
 // Bus Width decoder
-assign bw8  = (bus_width == `BW_8);
-assign bw16 = (bus_width == `BW_16);
+assign bw8  = (bus_width == `MC_BW_8);
+assign bw16 = (bus_width == `MC_BW_16);
 
 assign	cs_a = |cs;	// Any Chip Select
 
@@ -444,11 +440,11 @@ always @(posedge clk)
 assign {cs_en, ras_, cas_, we_} = wr_cycle ? cmd_del : cmd;
 
 // Track Timing of Asserting a command
-always @(posedge mc_clk)
-	cmd_asserted <= #1 cmd[3];
+always @(posedge clk)
+	if(!mc_le)	cmd_asserted <= #1 cmd[3];
 
-always @(posedge mc_clk)
-	cmd_asserted2 <= #1 cmd_asserted;
+always @(posedge clk)
+	if(mc_le)	cmd_asserted2 <= #1 cmd_asserted;
 
 // Output Enable
 always @(posedge clk)
@@ -565,7 +561,7 @@ always @(posedge clk)
 	if(!timer2_is_zero)	timer2 <= #1 timer2 - 9'b1;
 
 wire	twd_is_zero;
-assign twd_is_zero =  tms[19:16] == 0;
+assign twd_is_zero =  (tms[19:16] == 4'h0);
 
 assign timer2_is_zero = (timer2 == 9'h0);
 
@@ -574,9 +570,9 @@ always @(posedge clk)
 			!tmr2_ld_twpw & !tmr2_ld_twd & !tmr2_ld_twwd & !tmr2_ld_tscsto;
 
 // SDRAM Memories timing tracker
-always @(posedge mc_clk or negedge rst)
-`ifdef POR_DELAY
-	if(!rst)		timer <= #1 `POR_DELAY_VAL ;
+always @(posedge clk or negedge rst)
+`ifdef MC_POR_DELAY
+	if(!rst)		timer <= #1 `MC_POR_DELAY_VAL ;
 	else
 `endif
 	if(tmr_ld_twr2)		timer <= #1 { 4'h0, tms[15:12] };
@@ -597,7 +593,7 @@ always @(posedge mc_clk or negedge rst)
 	else
 	if(tmr_ld_txsr)		timer <= #1 8'd7;
 	else
-	if(!timer_is_zero)	timer <= #1 timer - 8'b1;
+	if(!timer_is_zero & !mc_le)	timer <= #1 timer - 8'b1;
 
 assign timer_is_zero = (timer == 8'h0);
 
@@ -606,7 +602,7 @@ always @(posedge clk)
 
 // Init Refresh Cycles Counter
 always @(posedge clk)
-	if(ir_cnt_ld)	ir_cnt <= #1 `INIT_RFRC_CNT;
+	if(ir_cnt_ld)	ir_cnt <= #1 `MC_INIT_RFRC_CNT;
 	else
 	if(ir_cnt_dec)	ir_cnt <= #1 ir_cnt - 4'b1;
 
@@ -647,7 +643,7 @@ always @(posedge clk)
 //
 
 always @(posedge clk or negedge rst)
-`ifdef POR_DELAY
+`ifdef MC_POR_DELAY
 	if(!rst)	state <= #1 POR;
 `else
 	if(!rst)	state <= #1 IDLE;
@@ -669,7 +665,7 @@ always @(state or cs_a or
 	next_state = state;	// Default keep current state
 	cnt_next = 1'b0;
 
-	cmd = `CMD_NOP;
+	cmd = `MC_CMD_NOP;
 	cmd_a10 = ~kro;
 	oe_d = 1'b0;
 	data_oe_d = 1'b0;
@@ -731,7 +727,7 @@ always @(state or cs_a or
 	mc_c_oe_d = 1'b1;
 
 	case(state)		// synopsys full_case parallel_case
-`ifdef POR_DELAY
+`ifdef MC_POR_DELAY
 	   POR:
 	      begin
 		if(tmr_done)	next_state = IDLE;
@@ -773,7 +769,7 @@ always @(state or cs_a or
 		  begin
 		   wb_cycle_set = 1'b1;
 		   case(mem_type)		// synopsys full_case parallel_case
-		     `MEM_TYPE_SDRAM:			// SDRAM
+		     `MC_MEM_TYPE_SDRAM:		// SDRAM
 			if((lookup_ready2 | wb_cycle) & !wb_wait)
 			   begin
 				if(wb_write_go  | wb_we_i)	wr_set = 1'b1;
@@ -782,7 +778,7 @@ always @(state or cs_a or
 				if(kro & bank_open)		next_state = PRECHARGE;
 				else				next_state = ACTIVATE;
 			   end
-		     `MEM_TYPE_ACS:
+		     `MC_MEM_TYPE_ACS:
 			begin				// Async Chip Select
 				if(!wb_wait)
 				   begin
@@ -795,7 +791,7 @@ always @(state or cs_a or
 					else			next_state = ACS_RD;
 				   end
 			end
-		     `MEM_TYPE_SCS:
+		     `MC_MEM_TYPE_SCS:
 			begin				// Sync Chip Select
 				if(!wb_wait)
 				   begin
@@ -803,21 +799,21 @@ always @(state or cs_a or
 					cs_le = 1'b1;
 					if(wb_write_go)	
 					   begin
-						cmd = `CMD_XWR;
+						cmd = `MC_CMD_XWR;
 						data_oe_d = 1'b1;
 						tmr_ld_twr2 = 1'b1;
 						next_state = SCS_WR;
 					   end
 					else		
 					   begin
-						cmd = `CMD_XRD;
+						cmd = `MC_CMD_XRD;
 						oe_d = 1'b1;
 						tmr_ld_trdv = 1'b1;
 						next_state = SCS_RD;
 					   end
 				   end
 			end
-		     `MEM_TYPE_SRAM:
+		     `MC_MEM_TYPE_SRAM:
 			begin		// SRAM
 				if(!wb_wait)
 				   begin
@@ -830,7 +826,7 @@ always @(state or cs_a or
 					   end
 					else		
 					   begin
-						cmd = `CMD_XRD;
+						cmd = `MC_CMD_XRD;
 						oe_d = 1'b1;
 						mc_adsc = 1'b1;
 						tmr2_ld_tsrdv = 1'b1;
@@ -862,7 +858,7 @@ always @(state or cs_a or
 		/////////////////////////////////////////
 	   SCS_RD:
 	      begin
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		oe_d = 1'b1;
 		tmr_ld_trdv = 1'b1;
 		if(mc_ack)	next_state = SCS_RD1;
@@ -872,7 +868,7 @@ always @(state or cs_a or
 
 	   SCS_RD1:
 	      begin
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		oe_d = 1'b1;
 		if(tmr_done)
 		   begin
@@ -891,7 +887,7 @@ always @(state or cs_a or
 	   SCS_WR:
 	      begin
 		tmr_ld_twr2 = 1'b1;
-		cmd = `CMD_XWR;
+		cmd = `MC_CMD_XWR;
 		data_oe_d = 1'b1;
 		if(mc_ack)	next_state = SCS_WR1;
 		else
@@ -906,7 +902,7 @@ always @(state or cs_a or
 			mem_ack_d = 1'b1;
 			next_state = IDLE_T;
 		   end
-		else	cmd = `CMD_XWR;
+		else	cmd = `MC_CMD_XWR;
 	      end
 
 	   SCS_ERR:
@@ -922,7 +918,7 @@ always @(state or cs_a or
 
 	   SRAM_RD:
 	      begin
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		oe_d = 1'b1;
 		mc_adsc = 1'b1;
 		tmr2_ld_tsrdv = 1'b1;
@@ -984,7 +980,7 @@ always @(state or cs_a or
 
 	   SRAM_WR: // 80
 	      begin
-		cmd = `CMD_XWR;
+		cmd = `MC_CMD_XWR;
 		mc_adsc = 1'b1;
 		data_oe_d = 1'b1;
 		if(cmd_asserted)
@@ -1029,7 +1025,7 @@ always @(state or cs_a or
 		/////////////////////////////////////////
 	   ACS_RD:
 	      begin
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		oe_d = 1'b1;
 		tmr2_ld_trdv = 1'b1;
 		next_state = ACS_RD1;
@@ -1037,7 +1033,7 @@ always @(state or cs_a or
 
 	   ACS_RD1:
 	      begin	// 32 bit, 8 bit - first; 16 bit - first
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		oe_d = 1'b1;
 		if(tmr2_done)
 		   begin
@@ -1053,7 +1049,7 @@ always @(state or cs_a or
 	   ACS_RD_8_1:
 	      begin	// 8 bit 2nd byte
 		pack_le0_d = 1'b1;
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		oe_d = 1'b1;
 		tmr2_ld_trdv = 1'b1;
 		next_state = ACS_RD_8_2;
@@ -1061,7 +1057,7 @@ always @(state or cs_a or
 
 	   ACS_RD_8_2:
 	      begin
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		oe_d = 1'b1;
 		if(tmr2_done)
 		   begin
@@ -1073,7 +1069,7 @@ always @(state or cs_a or
 	   ACS_RD_8_3:
 	      begin	// 8 bit 3rd byte
 		pack_le1_d = 1'b1;
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		oe_d = 1'b1;
 		tmr2_ld_trdv = 1'b1;
 		next_state = ACS_RD_8_4;
@@ -1081,7 +1077,7 @@ always @(state or cs_a or
 
 	   ACS_RD_8_4:
 	      begin
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		oe_d = 1'b1;
 		if(tmr2_done)
 		   begin
@@ -1094,7 +1090,7 @@ always @(state or cs_a or
 	      begin	// 8 bit 4th byte; 16 bit 2nd word
 		if(bw8)			pack_le2_d = 1'b1;
 		if(bw16)		pack_le0_d = 1'b1;
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		oe_d = 1'b1;
 		tmr2_ld_trdv = 1'b1;
 		next_state = ACS_RD_8_6;
@@ -1102,7 +1098,7 @@ always @(state or cs_a or
 
 	   ACS_RD_8_6:
 	      begin
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		oe_d = 1'b1;
 		if(tmr2_done)
 		   begin
@@ -1113,13 +1109,13 @@ always @(state or cs_a or
 	   ACS_RD2A:
 	      begin
 		oe_d = 1'b1;
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		next_state = ACS_RD2;
 	      end
 
 	   ACS_RD2:
 	      begin
-		cmd = `CMD_XRD;
+		cmd = `MC_CMD_XRD;
 		next_state = ACS_RD3;
 	      end
 
@@ -1133,7 +1129,7 @@ always @(state or cs_a or
 	   ACS_WR:
 	      begin
 		tmr2_ld_twpw = 1'b1;
-		cmd = `CMD_XWR;
+		cmd = `MC_CMD_XWR;
 		data_oe_d = 1'b1;
 		next_state = ACS_WR1;
 	      end
@@ -1141,7 +1137,7 @@ always @(state or cs_a or
 	   ACS_WR1:
 	      begin
 		if(!cmd_asserted)	tmr2_ld_twpw = 1'b1;
-		cmd = `CMD_XWR;
+		cmd = `MC_CMD_XWR;
 		data_oe_d = 1'b1;
 		if(tmr2_done)
 		   begin
@@ -1155,7 +1151,7 @@ always @(state or cs_a or
 		if(twd_is_zero)	next_state = ACS_WR3;
 		else
 		   begin
-			cmd = `CMD_XRD;
+			cmd = `MC_CMD_XRD;
 			data_oe_d = 1'b1;
 			next_state = ACS_WR3;
 		   end
@@ -1164,7 +1160,7 @@ always @(state or cs_a or
 	   ACS_WR3:
 	      begin
 		if(tmr2_done)	next_state = ACS_WR4;
-		else		cmd = `CMD_XRD;
+		else		cmd = `MC_CMD_XRD;
 	      end
 
 	   ACS_WR4:
@@ -1180,17 +1176,17 @@ always @(state or cs_a or
 
 	   PRECHARGE:
 	      begin
-		cmd = `CMD_PC;
+		cmd = `MC_CMD_PC;
 		if(rfr_ack_r)
 		   begin
 			rfr_ack = 1'b1;
-			cmd_a10 = `ALL_BANKS;
+			cmd_a10 = `MC_ALL_BANKS;
 			bank_clr_all = 1'b1;
 		   end
 		else	
 		   begin
 			bank_clr = 1'b1;
-			cmd_a10 = `SINGLE_BANK;
+			cmd_a10 = `MC_SINGLE_BANK;
 		   end
 		tmr_ld_trp = 1'b1;
 		if(cmd_asserted)	next_state = PRECHARGE_W;
@@ -1212,7 +1208,7 @@ always @(state or cs_a or
 		   begin
 			row_sel = 1'b1;
 			tmr_ld_trcd = 1'b1;
-			cmd = `CMD_ACT;
+			cmd = `MC_CMD_ACT;
 		   end
 		if(cmd_asserted)	next_state = ACTIVATE_W;
 	      end
@@ -1262,7 +1258,7 @@ always @(state or cs_a or
 		data_oe_d = 1'b1;
 		tmr_ld_twr = 1'b1;
 		cnt_next = ~cnt;
-		cmd = `CMD_WR;
+		cmd = `MC_CMD_WR;
 		cmd_a10 = ~kro;
 
 		if(!cnt & wb_cycle & burst_act)	cke_d = !wb_wait;
@@ -1289,7 +1285,7 @@ always @(state or cs_a or
 
 		if(single_write & wb_cycle)
 		   begin
-			cmd = `CMD_WR;
+			cmd = `MC_CMD_WR;
 			if(burst_act)	cmd_a10 = 1'b0;
 			else		cmd_a10 = ~kro;
 		   end
@@ -1315,7 +1311,7 @@ always @(state or cs_a or
 
 	   SD_RD:	// Read Command 7
 	      begin
-		cmd = `CMD_RD;
+		cmd = `MC_CMD_RD;
 		if(burst_fp)	cmd_a10 = 1'b0;
 		else		cmd_a10 = ~kro;
 		tmr_ld_tcl = 1'b1;
@@ -1353,7 +1349,7 @@ always @(state or cs_a or
 
 	   BT:		// Burst Terminate  C
 	      begin
-		cmd = `CMD_BT;
+		cmd = `MC_CMD_BT;
 		tmr_ld_trp = 1'b1;
 		if(cmd_asserted)			next_state = BT_W;
 	      end
@@ -1364,11 +1360,11 @@ always @(state or cs_a or
 		else
 		if(tmr_done & (!burst_fp | kro))	next_state = IDLE;
 		else
-		if(tmr_done & burst_fp & ~kro)	// Must PRECHARGE Full Page Bursts
+		if(tmr_done & burst_fp & !kro)	// Must PRECHARGE Full Page Bursts
 		   begin
 			bank_clr = 1'b1;
-			cmd = `CMD_PC;
-			cmd_a10 = `SINGLE_BANK;
+			cmd = `MC_CMD_PC;
+			cmd_a10 = `MC_SINGLE_BANK;
 			tmr_ld_trp = 1'b1;
 			if(cmd_asserted)		next_state = IDLE_T;
 		   end
@@ -1376,7 +1372,7 @@ always @(state or cs_a or
 
 	   REFR:	// Refresh Cycle
 	      begin
-		cmd = `CMD_ARFR;
+		cmd = `MC_CMD_ARFR;
 		tmr_ld_trfc = 1'b1;
 		rfr_ack = 1'b1;
 		if(cmd_asserted)		next_state = IDLE_T;
@@ -1385,8 +1381,8 @@ always @(state or cs_a or
 	   LMR0:
 	      begin
 		lmr_ack = 1'b1;
-		cmd = `CMD_PC;
-		cmd_a10 = `ALL_BANKS;
+		cmd = `MC_CMD_PC;
+		cmd_a10 = `MC_ALL_BANKS;
 		bank_clr_all = 1'b1;
 		tmr_ld_trp = 1'b1;
 		if(cmd_asserted)		next_state = LMR1;
@@ -1401,7 +1397,7 @@ always @(state or cs_a or
 	   LMR2:
 	      begin
 		bank_clr_all = 1'b1;
-		cmd = `CMD_LMR;
+		cmd = `MC_CMD_LMR;
 		tmr_ld_trfc = 1'b1;
 		lmr_ack = 1'b1;
 		if(cmd_asserted)		next_state = IDLE_T;
@@ -1416,8 +1412,8 @@ always @(state or cs_a or
 	   INIT:	// Initialize SDRAMS
 	      begin	// PRECHARGE
 		init_ack = 1'b1;
-		cmd = `CMD_PC;
-		cmd_a10 = `ALL_BANKS;
+		cmd = `MC_CMD_PC;
+		cmd_a10 = `MC_ALL_BANKS;
 		bank_clr_all = 1'b1;
 		tmr_ld_trp = 1'b1;
 		ir_cnt_ld = 1'b1;
@@ -1433,7 +1429,7 @@ always @(state or cs_a or
 	   INIT_REFR1:	// Init Refresh Cycle 1
 	      begin
 		init_ack = 1'b1;
-		cmd = `CMD_ARFR;
+		cmd = `MC_CMD_ARFR;
 		tmr_ld_trfc = 1'b1;
 		if(cmd_asserted)
 		   begin
@@ -1455,7 +1451,7 @@ always @(state or cs_a or
 	   INIT_LMR:
 	      begin
 		init_ack = 1'b1;
-		cmd = `CMD_LMR;
+		cmd = `MC_CMD_LMR;
 		bank_clr_all = 1'b1;
 		tmr_ld_trfc = 1'b1;
 		if(cmd_asserted)		next_state = IDLE_T;
@@ -1492,8 +1488,8 @@ always @(state or cs_a or
 	   SUSP1:
 	      begin		// Precharge All
 		susp_sel = 1'b1;
-		cmd = `CMD_PC;
-		cmd_a10 = `ALL_BANKS;
+		cmd = `MC_CMD_PC;
+		cmd_a10 = `MC_ALL_BANKS;
 		bank_clr_all = 1'b1;
 		tmr_ld_trp = 1'b1;
 		if(cmd_asserted)	next_state = SUSP2;
@@ -1509,7 +1505,7 @@ always @(state or cs_a or
 	      begin		// Enter Self refresh Mode
 		cke_d = 1'b0;
 		susp_sel = 1'b1;
-		cmd = `CMD_ARFR;
+		cmd = `MC_CMD_ARFR;
 		rfr_ack = 1'b1;
 		if(cmd_asserted)
 		   begin

@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_cs_rf.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_cs_rf.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-08-10 08:16:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.3  2001/06/12 15:19:49  rudi
 //
 //
@@ -124,14 +130,14 @@ reg		lmr_req_we;
 assign sel = addr[6:3] == reg_select[3:0];
 
 always @(posedge clk)
-	if(!rst)			csc <= #1 (this_cs[2:0] == `DEF_SEL) ? 
+	if(!rst)			csc <= #1 (this_cs[2:0] == `MC_DEF_SEL) ? 
 			{26'h0, poc[1:0], 1'b0, poc[3:2], (poc[3:2] != 2'b00)} : 32'h0;
 	else
 	if(rf_we & sel & !addr[2])	csc <= #1 din;
 
 always @(posedge clk)
-	if(!rst)			tms <= #1 (this_cs[2:0] == `DEF_SEL) ? `DEF_POR_TMS :
-							32'h0;
+	if(!rst)			tms <= #1 (this_cs[2:0] == `MC_DEF_SEL) ?
+						`MC_DEF_POR_TMS : 32'h0;
 	else
 	if(rf_we & sel & addr[2])	tms <= #1 din;
 
@@ -145,7 +151,7 @@ always @(posedge clk)
 always @(posedge clk or negedge rst)
 	if(!rst)	lmr_req <= #1 1'b0;
 	else
-	if(lmr_req_we & (csc[3:1] == `MEM_TYPE_SDRAM))
+	if(lmr_req_we & (csc[3:1] == `MC_MEM_TYPE_SDRAM))
 			lmr_req <= #1 inited;
 	else
 	if(lmr_ack)	lmr_req <= #1 1'b0;
@@ -160,7 +166,7 @@ always @(posedge clk)
 always @(posedge clk or negedge rst)
 	if(!rst)	init_req <= #1 1'b0;
 	else
-	if(init_req_we & (csc[3:1] == `MEM_TYPE_SDRAM) & csc[0] & !inited)
+	if(init_req_we & (csc[3:1] == `MC_MEM_TYPE_SDRAM) & csc[0] & !inited)
 			init_req <= #1 1'b1;
 	else
 	if(init_ack)	init_req <= #1 1'b0;

@@ -38,16 +38,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_obct_top.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_obct_top.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-08-10 08:16:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.1.1.1  2001/05/13 09:39:47  rudi
 //               Created Directory Structure
 //
@@ -204,7 +210,7 @@ mc_obct	u0(
 		.row_same(	row_same_0	)
 		);
 
-`ifdef HAVE_CS1
+`ifdef MC_HAVE_CS1
 mc_obct	u1(
 		.clk(		clk		),
 		.rst(		rst		),
@@ -232,7 +238,7 @@ mc_obct_dummy	u1(
 		);
 `endif
 
-`ifdef HAVE_CS2
+`ifdef MC_HAVE_CS2
 mc_obct	u2(
 		.clk(		clk		),
 		.rst(		rst		),
@@ -260,7 +266,7 @@ mc_obct_dummy	u2(
 		);
 `endif
 
-`ifdef HAVE_CS3
+`ifdef MC_HAVE_CS3
 mc_obct	u3(
 		.clk(		clk		),
 		.rst(		rst		),
@@ -288,7 +294,7 @@ mc_obct_dummy	u3(
 		);
 `endif
 
-`ifdef HAVE_CS4
+`ifdef MC_HAVE_CS4
 mc_obct	u4(
 		.clk(		clk		),
 		.rst(		rst		),
@@ -316,7 +322,7 @@ mc_obct_dummy	u4(
 		);
 `endif
 
-`ifdef HAVE_CS5
+`ifdef MC_HAVE_CS5
 mc_obct	u5(
 		.clk(		clk		),
 		.rst(		rst		),
@@ -344,7 +350,7 @@ mc_obct_dummy	u5(
 		);
 `endif
 
-`ifdef HAVE_CS6
+`ifdef MC_HAVE_CS6
 mc_obct	u6(
 		.clk(		clk		),
 		.rst(		rst		),
@@ -372,7 +378,7 @@ mc_obct_dummy	u6(
 		);
 `endif
 
-`ifdef HAVE_CS7
+`ifdef MC_HAVE_CS7
 mc_obct	u7(
 		.clk(		clk		),
 		.rst(		rst		),

@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: test_bench_top.v,v 1.1 2001-07-29 07:34:40 rudi Exp $
+//  $Id: test_bench_top.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:40 $
-//  $Revision: 1.1 $
+//  $Date: 2001-08-10 08:16:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:40  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.2  2001/06/03 11:34:18  rudi
 //               *** empty log message ***
 //
@@ -268,6 +274,7 @@ $display(" :....................................................:");
 	boot(2);
 `endif
 	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0000_0000);
+
 	sdram_rd1(2);
 	sdram_wr1(2);
 
@@ -304,7 +311,7 @@ $display(" :....................................................:");
 
    end
 else
-if(0)	// Suspend resume testing
+if(1)	// Suspend resume testing
 begin
 $display(" ......................................................");
 $display(" :                                                    :");
@@ -388,7 +395,7 @@ $display(" :....................................................:");
 	join
 end
 else
-if(1)	// Bus Request testing
+if(0)	// Bus Request testing
 begin
 $display(" ......................................................");
 $display(" :                                                    :");
@@ -484,8 +491,10 @@ $display(" :....................................................:");
 	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0000_0000);
 	//sdram_rmw2(2);
 
-	sdram_wr3(0);
+	//sram_rd1;
+	//sram_rmw1;
 	//sram_rmw2;
+	//sram_wp;
 
 	//scs_rdwr1(2);
 
@@ -496,8 +505,14 @@ $display(" :....................................................:");
 	//asc_rdwr1(2);
 	//asc_rdwr1_x(2);
 
-	//sram_rd1;
-	//sram_wr1;
+	sdram_rd1(2);
+	sdram_wr1(2);
+	sram_rd1;
+	sram_wr1;
+
+	//sdram_rmw2(2);
+	//sdram_rd5(2);
+	//sdram_wr5(2);
 
 	//sdram_rd1(2);
 	//sdram_wr1(2);
@@ -650,7 +665,9 @@ $finish;
 always #2.5	clk = ~clk;
 
 always @(posedge clk)
-	#0.5 mc_clk <= ~mc_clk;
+	//#0.5 mc_clk <= ~mc_clk;
+	//#4.5 mc_clk <= ~mc_clk;
+	mc_clk <= ~mc_clk;
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -726,8 +743,8 @@ pullup p8(mc_rp_);
 // WISHBONE Memory Controller IP Core
 //
 mc_top	u0(
-		.clk(		clk		),
-		.rst(		rst		),
+		.clk_i(		clk		),
+		.rst_i(		rst		),
 		.wb_data_i(	wb_data_i	),
 		.wb_data_o(	wb_data_o	),
 		.wb_addr_i(	wb_addr_i	),
@@ -737,34 +754,34 @@ mc_top	u0(
 		.wb_stb_i(	wb_stb_i	),
 		.wb_ack_o(	wb_ack_o	),
 		.wb_err_o(	wb_err_o	),
-		.susp_req(	susp_req	),
-		.resume_req(	resume_req	),
-		.suspended(	suspended	),
-		.poc(		poc		),
-		.mc_clk(	mc_clk		),
-		.mc_br(		mc_br		),
-		.mc_bg(		mc_bg		),
-		.mc_ack(	mc_ack		),
-		.mc_addr(	_mc_addr	),
-		.mc_data_i(	mc_data_i	),
-		.mc_data_o(	mc_data_o	),
-		.mc_dp_i(	mc_dp_i		),
-		.mc_dp_o(	mc_dp_o		),
-		.mc_data_oe(	mc_data_oe	),
-		.mc_dqm(	_mc_dqm		),
-		.mc_oe_(	_mc_oe_		),
-		.mc_we_(	_mc_we_		),
-		.mc_cas_(	_mc_cas_	),
-		.mc_ras_(	_mc_ras_	),
-		.mc_cke_(	_mc_cke_	),
-		.mc_cs_(	_mc_cs_		),
-		.mc_sts(	mc_sts		),
-		.mc_rp_(	_mc_rp_		),
-		.mc_vpen(	_mc_vpen	),
-		.mc_adsc_(	_mc_adsc_	),
-		.mc_adv_(	_mc_adv_	),
-		.mc_zz(		_mc_zz		),
-		.mc_c_oe(	mc_c_oe		)
+		.susp_req_i(	susp_req	),
+		.resume_req_i(	resume_req	),
+		.suspended_o(	suspended	),
+		.poc_o(		poc		),
+		.mc_clk_i(	mc_clk		),
+		.mc_br_pad_i(	mc_br		),
+		.mc_bg_pad_o(	mc_bg		),
+		.mc_ack_pad_i(	mc_ack		),
+		.mc_addr_pad_o(	_mc_addr	),
+		.mc_data_pad_i(	mc_data_i	),
+		.mc_data_pad_o(	mc_data_o	),
+		.mc_dp_pad_i(	mc_dp_i		),
+		.mc_dp_pad_o(	mc_dp_o		),
+		.mc_doe_pad_doe_o(mc_data_oe	),
+		.mc_dqm_pad_o(	_mc_dqm		),
+		.mc_oe_pad_o_(	_mc_oe_		),
+		.mc_we_pad_o_(	_mc_we_		),
+		.mc_cas_pad_o_(	_mc_cas_	),
+		.mc_ras_pad_o_(	_mc_ras_	),
+		.mc_cke_pad_o_(	_mc_cke_	),
+		.mc_cs_pad_o_(	_mc_cs_		),
+		.mc_sts_pad_i(	mc_sts		),
+		.mc_rp_pad_o_(	_mc_rp_		),
+		.mc_vpen_pad_o(	_mc_vpen	),
+		.mc_adsc_pad_o_(_mc_adsc_	),
+		.mc_adv_pad_o_(	_mc_adv_	),
+		.mc_zz_pad_o(	_mc_zz		),
+		.mc_coe_pad_coe_o(mc_c_oe	)
 		);
 
 /////////////////////////////////////////////////////////////////////

@@ -38,16 +38,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_wb_if.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_wb_if.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-08-10 08:16:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.3  2001/06/12 15:19:49  rudi
 //
 //
@@ -118,7 +124,7 @@ reg		rmw_en;
 // Memory Go Logic
 //
 
-assign mem_sel = `MEM_SEL;
+assign mem_sel = `MC_MEM_SEL;
 
 always @(posedge clk or negedge rst)
 	if(!rst)		rmw_en <= #1 1'b0;
@@ -145,7 +151,6 @@ always @(posedge clk)
 	write_go_r1 <= #1 wb_cyc_i & ((wb_stb_i & mem_sel & wb_we_i) | write_go_r);
 
 always @(posedge clk)
-	//write_go_r <= #1 write_go_r1 & wb_cyc_i;
 	write_go_r <= #1 write_go_r1 & wb_cyc_i &
 			((wb_we_i & wb_stb_i) | !wb_stb_i);
 
