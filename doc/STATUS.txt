@@ -13,6 +13,13 @@ if someone else could verify the core as well.
 STATUS
 ======
 
+Latest Release (7/27/2001)
+--------------------------
+- Many Bug fixes
+- There might be still many bugs ! Only little testing has been done !
+- Please do not modify the sources (yet !) ! I'm still working on the core.
+- Please read the Memory Controller Specification for more details.
+
 Initial Release (13/5/2001)
 ---------------------------
 - This is the very first release of the core
