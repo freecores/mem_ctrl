@@ -425,7 +425,7 @@ initial begin
       //$display("Initializing Memory to 'hFFFF");
       //for (LoopCntr = 0; LoopCntr <= `MaxAddr; LoopCntr = LoopCntr + 1) begin
       //  MainArray [LoopCntr] = 16'hFFFF ;
-      $display("Initializing Memory data to address value (0, 1, 2 ...)");
+      $display("FLASH: Initializing Memory data to address value (0, 1, 2 ...)");
       for (LoopCntr = 0; LoopCntr <= 1024; LoopCntr = LoopCntr + 1) begin
         MainArray [LoopCntr] = LoopCntr ;
 
@@ -443,7 +443,7 @@ end
 
 task LoadFromFile ;
 begin
-    $display("Loading from file %s",LoadFileName);
+    $display("FLASH: Loading from file %s",LoadFileName);
     $readmemh(LoadFileName,MainArray);
 end
 endtask 
@@ -461,9 +461,9 @@ task  StoreToFile;
 begin
     outfile = $fopen(SaveFileName) ;
     if (outfile == 0) 
-        $display("Error, cannot open output file %s",SaveFileName) ;
+        $display("FLASH: Error, cannot open output file %s",SaveFileName) ;
     else
-        $display("Saving data to file %s",SaveFileName);
+        $display("FLASH: Saving data to file %s",SaveFileName);
     for (ArrayAddr = 0 ; ArrayAddr <= `MaxAddr; ArrayAddr = ArrayAddr + 1) begin
         $fdisplay(outfile,"%h",MainArray[ArrayAddr]);
     end
@@ -582,18 +582,18 @@ always @(Internal_RE or ReadMode or addr or Internal_OE2 or ArrayOut) begin
               if ( (EraseSuspended == `TRUE) && (WriteSuspended == `FALSE)
                    && (addr >= BlocksBegin[Algorithm[`OpBlock]])
                    && (addr <= BlocksEnd[Algorithm[`OpBlock]]) && (oeb == `VIL) ) begin
-                $display("Error:  Attempting to read from erase suspended block");
+                $display("FLASH: Error:  Attempting to read from erase suspended block");
                 InternalOutput <= `MaxOutputs'hxxxx;
               end
               else if ( (WriteSuspended == `TRUE) && (EraseSuspended == `TRUE)
                        && (addr >= BlocksBegin[SuspendedAlg[`OpBlock]])
                        && (addr <= BlocksEnd[SuspendedAlg[`OpBlock]]) && (oeb == `VIL)) begin
-                $display("Error:  Attempting to read from erase suspended block");
+                $display("FLASH: Error:  Attempting to read from erase suspended block");
                 InternalOutput <= `MaxOutputs'hxxxx;
               end
               else if ( (WriteSuspended == `TRUE) && (addr == Algorithm[`CmdAdd_1])
                        && (oeb == `VIL) ) begin
-                $display("Error:  Attempting to read from write suspended address");
+                $display("FLASH: Error:  Attempting to read from write suspended address");
                 InternalOutput = `MaxOutputs'hxxxx;
               end
               else
@@ -606,7 +606,7 @@ always @(Internal_RE or ReadMode or addr or Internal_OE2 or ArrayOut) begin
                 InternalOutput <= #ToOut IDOut ;
             end
             default  :  begin
-                $display("Error: illegal readmode");
+                $display("FLASH: Error: illegal readmode");
             end
         endcase
     end
@@ -652,11 +652,11 @@ always @(negedge Internal_WE) begin : handle_write
            Cmd[`CmdAdd_2] = addr[`AddrSize-1:0];
          end
          else
-           $display("DataPtr out of range");
+           $display("FLASH: DataPtr out of range");
          DataPtr <= #1 DataPtr - 1 ; // When DataPtr = 0 the command goes to Decode section
        end
        default : begin
-         $display("Error: Write To ? Cmd");
+         $display("FLASH: Error: Write To ? Cmd");
        end
     endcase
   end
@@ -685,7 +685,7 @@ always @(posedge CmdValid) begin : predecode
     // READ INTELLIGENT IDENTIFIER COMMAND --
       `ReadIDCmd     :  begin    // Read Intelligent ID
          if ((WriteSuspended == `TRUE) || (EraseSuspended == `TRUE))
-           $display("Invalid read ID command during suspend");
+           $display("FLASH: Invalid read ID command during suspend");
          else
            ReadMode <= `rdID ;
          CmdValid <= `FALSE ;
@@ -702,7 +702,7 @@ always @(posedge CmdValid) begin : predecode
     // PROGRAM WORD COMMAND --
            `ProgramCmd : begin                              // Program Word
               if (WriteSuspended == `TRUE) begin
-                $display("Error:  Program Command during Write Suspend");
+                $display("FLASH: Error:  Program Command during Write Suspend");
                 CmdValid <= `FALSE;
               end
               else begin
@@ -719,7 +719,7 @@ always @(posedge CmdValid) begin : predecode
     // PROGRAM WORD COMMAND --
            `Program2Cmd  : begin       // Program Word
               if (WriteSuspended == `TRUE) begin
-                $display("Error:  Program Command during Write Suspend");
+                $display("FLASH: Error:  Program Command during Write Suspend");
                 CmdValid <= `FALSE;
               end
               else begin
@@ -737,7 +737,7 @@ always @(posedge CmdValid) begin : predecode
     // ERASE BLOCK COMMAND --
            `EraseBlockCmd : begin    // Single Block Erase
               if ((WriteSuspended == `TRUE) || (EraseSuspended == `TRUE)) begin
-                $display("Attempted to erase block while suspended");
+                $display("FLASH: Attempted to erase block while suspended");
                 CmdValid <= `FALSE;
               end
               else begin
@@ -781,7 +781,7 @@ always @(posedge CmdValid) begin : predecode
               else if (Cmd [`Cmd] == `SuspendCmd) begin
                 if (ReadyBusy == `Ready) begin
                   ReadMode <= `rdARRAY;
-                  $display("Algorithm finished; nothing to suspend");
+                  $display("FLASH: Algorithm finished; nothing to suspend");
                 end
                 else begin
                   ReadMode <= `rdCSR;
@@ -791,7 +791,7 @@ always @(posedge CmdValid) begin : predecode
               end
               else begin
                 CmdValid <= `FALSE;
-                $display("Warning:Illegal Command (%h)", Cmd [`Cmd]);	// Added displaying command code,--- RU 9/10/99
+                $display("FLASH: Warning:Illegal Command (%h)", Cmd [`Cmd]);	// Added displaying command code,--- RU 9/10/99
               end
             end  //default
          endcase 
@@ -818,7 +818,7 @@ always @(DataPtr) begin : command
           BlockUsed = LoopCntr;
       end
       if (BlockUsed == -1)
-        $display("Error:  Invalid Command Address");
+        $display("FLASH: Error:  Invalid Command Address");
       else
         Cmd [`OpBlock] = BlockUsed;
       if (Cmd [`OpType] ==  `Erase ) begin
@@ -879,7 +879,7 @@ always @(posedge AlgDone)  begin  : execution
         else begin
     // Do ERASE to OpBlock
           if ((BlocksType[Algorithm[`OpBlock]] == `LockBlock) && !InternalBoot_WE) begin
-            $display("Error: Attempted to erase locked block.");
+            $display("FLASH: Error: Attempted to erase locked block.");
             EraseError <= `TRUE;
             BlockLockStatus <= `TRUE;
           end
@@ -888,7 +888,7 @@ always @(posedge AlgDone)  begin  : execution
                  LoopCntr <= BlocksEnd[Algorithm[`OpBlock]]; LoopCntr = LoopCntr + 1)
               MainArray [LoopCntr] = 'hFFFF;
             BlocksEraseCount[Algorithm[`OpBlock]] = BlocksEraseCount[Algorithm[`OpBlock]] + 1;
-            $display("Block %d Erase Count: %d",Algorithm[`OpBlock],BlocksEraseCount[Algorithm[`OpBlock]]);
+            $display("FLASH: Block %d Erase Count: %d",Algorithm[`OpBlock],BlocksEraseCount[Algorithm[`OpBlock]]);
           end
         end
       end
@@ -900,7 +900,7 @@ always @(posedge AlgDone)  begin  : execution
         end
         else begin
           if ((BlocksType[Algorithm[`OpBlock]] == `LockBlock) && !InternalBoot_WE) begin
-            $display("Error: Attempted to program locked boot block.");
+            $display("FLASH: Error: Attempted to program locked boot block.");
             ProgramError <= `TRUE;
             BlockLockStatus <= `TRUE;
           end
@@ -933,7 +933,7 @@ end
 always @(addr) begin
   if ($time != 0) begin
     if ((curr_addr_time + TAVAV) > $time & !ceb)    //Read/Write Cycle Time		--- Added "& !ceb" RU 9/9/99 9pm
-      $display("[",$time,"] Timing Violation: Read/Write Cycle Time (TAVAV), Last addr change: %d",curr_addr_time) ;
+      $display("FLASH: [",$time,"] Timing Violation: Read/Write Cycle Time (TAVAV), Last addr change: %d",curr_addr_time) ;
     curr_addr_time = $time ;
   end
 end
@@ -1017,7 +1017,7 @@ always @(rpb or vcc) begin : ResetPowerdownMonitor
     if ((rpb != `VIH) || (vcc < 2500)) begin // Low Vcc protection
         Reset <= `TRUE ;
     if (!((vcc >= 2500) || StartUpFlag))
-        $display ("Low Vcc: Chip Resetting") ;
+        $display ("FLASH: Low Vcc: Chip Resetting") ;
     end
     else
     // Coming out of reset takes time
@@ -1035,7 +1035,7 @@ always @(Reset or vcc) begin : VccMonitor
     if (vcc == 0 && SaveOnPowerdown)
       StoreToFile;
     if (vcc < 2700)
-      $display("Vcc is below minimum operating specs");
+      $display("FLASH: Vcc is below minimum operating specs");
     else if ((vcc >= 2700) && (vcc <= 3600) && (`VccLevels & `Vcc2700)) begin
       //$display ("Vcc is in operating range for 2.7 volt mode") ;			// Commented out RU 9/11/99
 /*
@@ -1070,7 +1070,7 @@ always @(Reset or vcc) begin : VccMonitor
       end
     end
     else
-      $display ("Vcc is out of operating range") ;
+      $display ("FLASH: Vcc is out of operating range") ;
   end //$time
 end
 
@@ -1092,7 +1092,7 @@ always @(VppFlag or ClearVppFlag or vpp) begin : VppMonitor
       Program_Time_Word = `AC_ProgramTime_Word_27_27;
     end
     else begin
-      $display("Invalid Vcc level at Vpp change");
+      $display("FLASH: Invalid Vcc level at Vpp change");
       VppErrFlag = `TRUE;
     end
   end
@@ -1103,7 +1103,7 @@ always @(VppFlag or ClearVppFlag or vpp) begin : VppMonitor
       Program_Time_Word = `AC_ProgramTime_Word_27_12;
     end
     else begin
-      $display("Invalid Vcc level at Vpp change");
+      $display("FLASH: Invalid Vcc level at Vpp change");
       VppErrFlag = `TRUE;
     end
   end
@@ -1144,11 +1144,11 @@ always @(Internal_WE) begin : Timing_chk
   // pulse chk
     if (Internal_WE) begin
       if ((($time - curr_Internal_WE_time) < TWHWL) && (TWHWL > 0 )) begin
-        $display("[",$time,"] Timing Violation: Internal Write Enable Insufficient High Time") ;
+        $display("FLASH: [",$time,"] Timing Violation: Internal Write Enable Insufficient High Time") ;
       end
     end
     else if ((($time - curr_Internal_WE_time) < TWLWH) && (TWLWH > 0 ))
-      $display("[",$time,"] Timing Violation: Internal Write Enable Insufficient Low Time") ;
+      $display("FLASH: [",$time,"] Timing Violation: Internal Write Enable Insufficient Low Time") ;
     curr_Internal_WE_time = $time ;
     // timing_chk - addr
     last_dq_time = $time - curr_dq_time;
@@ -1156,11 +1156,11 @@ always @(Internal_WE) begin : Timing_chk
     last_addr_time = $time - curr_addr_time;
     if (Internal_WE == 0)  begin
       if ((last_addr_time < TAVWH) && (last_addr_time > 0))
-        $display("[",$time,"] Timing Violation: Address setup time during write, Last Event %d",last_addr_time) ;
+        $display("FLASH: [",$time,"] Timing Violation: Address setup time during write, Last Event %d",last_addr_time) ;
       if ((last_rpb_time < TPHWL) && (last_rpb_time > 0))
-        $display("[",$time,"] Timing Violation: Writing while coming out of powerdown,  Last Event %d",last_rpb_time) ;
+        $display("FLASH: [",$time,"] Timing Violation: Writing while coming out of powerdown,  Last Event %d",last_rpb_time) ;
       if ((last_dq_time < TDVWH) && (last_dq_time > 0))
-        $display("[",$time,"] Timing Violation: Data setup time during write, Last Event %d",last_dq_time) ;
+        $display("FLASH: [",$time,"] Timing Violation: Data setup time during write, Last Event %d",last_dq_time) ;
     end 
   end
 end  
@@ -1169,7 +1169,7 @@ always @(addr) begin
   last_Internal_WE_time = $time - curr_Internal_WE_time;
   if (($time > 0) && !Internal_WE) begin   //timing chk
     if ((last_Internal_WE_time < TWHAX) && (last_Internal_WE_time > 0))
-      $display("[",$time,"] Timing Violation:Address hold time after write, Last Event %d",last_Internal_WE_time) ;
+      $display("FLASH: [",$time,"] Timing Violation:Address hold time after write, Last Event %d",last_Internal_WE_time) ;
   end
 end
 
@@ -1184,7 +1184,7 @@ always @(dq) begin
   last_Internal_WE_time = $time - curr_Internal_WE_time;
   if (($time > 0) && !Internal_WE) begin
     if ((last_Internal_WE_time < TWHDX) && (last_Internal_WE_time > 0))
-      $display("[",$time,"] Timing Violation:Data hold time after write, Last Event %d",last_Internal_WE_time) ;
+      $display("FLASH: [",$time,"] Timing Violation:Data hold time after write, Last Event %d",last_Internal_WE_time) ;
   end
 end
 

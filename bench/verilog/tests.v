@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: tests.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
+//  $Id: tests.v,v 1.3 2001-09-02 02:29:43 rudi Exp $
 //
-//  $Date: 2001-08-10 08:16:21 $
-//  $Revision: 1.2 $
+//  $Date: 2001-09-02 02:29:43 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/08/10 08:16:21  rudi
+//
+//               - Changed IO names to be more clear.
+//               - Uniquifyed define names to be core specific.
+//               - Removed "Refresh Early" configuration
+//
 //               Revision 1.1  2001/07/29 07:34:40  rudi
 //
 //
@@ -82,7 +88,14 @@ $display("*****************************************************\n");
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
+
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -90,7 +103,8 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
 					3'd3	// Burst Length
 					});
 
-m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821);
+//m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821);
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0021);
 
 case(quick)
  0: sz_max = 64;
@@ -104,15 +118,16 @@ case(quick)
  2: del_max = 4;
 endcase
 
-size = 8;
-del = 0;
-mode = 8;
-write = 1;
+size = 4;
+del = 1;
+mode = 2;
+write = 0;
 //force sdram0.Debug = 1;
 
 for(mode=0;mode<10;mode=mode+1)
 begin
 	sdram0.mem_fill(1024);
+	//sdram0p.mem_fill(1024);
 
 	case(mode[3:1])
 	   0: bs = 0;
@@ -130,7 +145,13 @@ begin
 	   4: sz_inc = 1;
 	endcase
 
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,		// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd2+mode[0],	// CL
@@ -203,7 +224,13 @@ $display("*****************************************************\n");
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -225,8 +252,8 @@ case(quick)
  2: del_max = 4;
 endcase
 
-size = 2;
-del = 2;
+size = 1;
+del = 0;
 mode = 0;
 read = 1;
 //force sdram0.Debug = 1;
@@ -254,7 +281,13 @@ begin
 		   4: sz_inc = 1;
 		endcase
 
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0+mode[1],	// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd2+mode[0],	// CL
@@ -347,7 +380,13 @@ endcase
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -386,7 +425,13 @@ begin
 	   4: sz_inc = 1;
 	endcase
 
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,		// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd2+mode[0],	// CL
@@ -489,7 +534,13 @@ page_size = 256; // 64 mbit x 32 SDRAM
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -501,7 +552,8 @@ bas = 0;
 for(bas=0;bas<2;bas=bas+1)
 begin
 
-m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (bas[0]<<9));
+//m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (bas[0]<<9));
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0021 | (bas[0]<<9));
 
 case(quick)
  0: sz_max = 32;
@@ -515,9 +567,9 @@ case(quick)
  2: del_max = 4;
 endcase
 
-size = 4;
-del = 2;
-mode = 4;
+size = 3;
+del = 0;
+mode = 10;
 read = 1;
 //force sdram0.Debug = 1;
 
@@ -526,16 +578,19 @@ begin
 	sdram0.mem_fill(1024);
 
 	case(mode[4:2])
-	   0: bs = 0;
-	   1: bs = 1;
-	   2: bs = 2;
-	   3: bs = 3;
-	   4: bs = 7;
+	   0: bs = 0;	// 1 Transfer
+	   1: bs = 1;	// 2 Transfers
+	   2: bs = 2;	// 4 Transfers
+	   3: bs = 3;	// 8 Transfers
+	   4: bs = 7;	// Page Size Transfer
 	endcase
 
 	if(mode[1])
-	   sz_inc = 1;
+	   begin
+		sz_inc = 1;
+	   end
 	else
+	   begin
 		case(mode[4:2])
 		   0: sz_inc = 1;
 		   1: sz_inc = 2;
@@ -543,6 +598,7 @@ begin
 		   3: sz_inc = 8;
 		   4: sz_inc = 1;
 		endcase
+	   end
 
 	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {		// 22'h3fff_ff,
 
@@ -550,7 +606,7 @@ begin
 					4'd7,		// Trfc [27:24]
 					4'd2,		// Trp [23:20]
 					3'd2,		// Trcd [19:17]
-					2'd2,		// Twr [16:15]
+					2'd1,		// Twr [16:15]
 					5'd0,		// RESERVED [14:10]
 
 					1'd0+mode[1],	// Wr. Burst Len (1=Single)
@@ -606,6 +662,16 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 		   3: data = sdram0.Bank3[n+3*size*2];
 		endcase
 
+
+		if(read & 0)
+		if((data !== m0.rd_mem[(m*size*2)+n]) | (|data === 1'bx) |
+			(|m0.rd_mem[(m*size*2)+n] === 1'bx) )
+		   begin
+			$display("ERROR: RD Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
+			(m*size*2)+n, data, m0.rd_mem[(m*size*2)+n],  $time);
+			error_cnt = error_cnt + 1;
+		   end
+
 		if((data !== m0.wr_mem[(m*size*2)+n]) | (|data === 1'bx) |
 			(|m0.wr_mem[(m*size*2)+n] === 1'bx) )
 		   begin
@@ -652,7 +718,13 @@ $display("*****************************************************\n");
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -708,16 +780,6 @@ begin
 	   4: sz_inc = 1;
 	endcase
 
-/*
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
-					1'd0,		// Wr. Burst Len (1=Single)
-					2'd0,		// Op Mode
-					3'd2+mode[0],	// CL
-					1'b0,		// Burst Type (0=Seq;1=Inter)
-					3'd0+bs		// Burst Length
-					});
-*/
-
 	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {	
 
 					4'd0,		// RESERVED [31:28]
@@ -736,9 +798,6 @@ begin
 
 
 if(!verbose)	$display("Mode: %b", mode);
-//repeat(200)	@(posedge clk);
-
-//$display("\n\n");
 
 for(del=0;del<del_max;del=del+1)
 for(size=sz_inc;size<sz_max;size=size+sz_inc)
@@ -746,8 +805,6 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 	m0.mem_fill;
 
 	if(verbose)	$display("Mode: %b, Size: %0d, Delay: %0d", mode,  size, del);
-	//if(verbose)	$display("Mode: %b, SDRAM BS: %0d, Tx Size: %0d, Delay: %0d",
-	//		mode, sbs,  size, del);
 
 //bw_clear;
 	if(write)	m0.wb_wr_mult(`MEM_BASE +        0, 4'hf, del, size);
@@ -811,7 +868,13 @@ $display("*****************************************************\n");
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -975,7 +1038,13 @@ endcase
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -1014,7 +1083,13 @@ begin
 	   4: sz_inc = 1;
 	endcase
 
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,		// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd2+mode[0],	// CL
@@ -1126,7 +1201,13 @@ page_size = 256; // 64 mbit x 32 SDRAM
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -1181,7 +1262,13 @@ begin
 		   4: sz_inc = 1;
 		endcase
 
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0+mode[1],	// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd2+mode[0],	// CL
@@ -1294,13 +1381,19 @@ endcase
 case(quick)
  0: del_max = 16;
  1: del_max = 8;
- 2: del_max = 4;
+ 2: del_max = 8;
 endcase
 
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -1308,7 +1401,13 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
 					3'd3	// Burst Length
 					});
 
-m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -1316,7 +1415,13 @@ m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, {22'h3fff_ff,
 					3'd3	// Burst Length
 					});
 
-m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -1324,16 +1429,16 @@ m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, {22'h3fff_ff,
 					3'd3	// Burst Length
 					});
 
-bas = 1;
+bas = 0;
 for(bas=0;bas<2;bas=bas+1)
 begin
 m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0421 | (bas[0]<<9));
 m0.wb_wr1(`REG_BASE + `CSC1,	4'hf, 32'h0020_0021 | (bas[0]<<9));
 m0.wb_wr1(`REG_BASE + `CSC2,	4'hf, 32'h0040_0421 | (bas[0]<<9));
 
-size = 1;
-del = 0;
-mode = 0;
+size = 15;
+del = 3;
+mode = 9;
 write = 1;
 if(0)
    begin
@@ -1342,6 +1447,7 @@ if(0)
 	force sdram2.Debug = 1;
    end
 
+//for(mode=0;mode<10;mode=mode+1)
 for(mode=0;mode<10;mode=mode+1)
 begin
 	sdram0.mem_fill(1024);
@@ -1355,7 +1461,7 @@ begin
 	   3: bs = 3;
 	   4: bs = 7;
 	endcase
-	
+
 	case(mode[3:1])
 	   0: sz_inc = 1;
 	   1: sz_inc = 2;
@@ -1364,7 +1470,13 @@ begin
 	   4: sz_inc = 1;
 	endcase
 
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,		// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd2+mode[0],	// CL
@@ -1372,7 +1484,13 @@ begin
 					3'd0+bs		// Burst Length
 					});
 
-	m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,		// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd2+mode[0],	// CL
@@ -1380,7 +1498,13 @@ begin
 					3'd0+bs		// Burst Length
 					});
 
-	m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,		// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd3-mode[0],	// CL
@@ -1513,6 +1637,7 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
 			(m*size*2)+n, data, m0.rd_mem[(m*size*2)+n],  $time);
 			error_cnt = error_cnt + 1;
+			if(error_cnt > 25)	$finish;
 		   end
 
 	   end
@@ -1555,10 +1680,21 @@ $display("*****************************************************\n");
 
 page_size = 256; // 64 mbit x 32 SDRAM
 
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0000);
+m0.wb_wr1(`REG_BASE + `CSC1,	4'hf, 32'h0000_0000);
+m0.wb_wr1(`REG_BASE + `CSC2,	4'hf, 32'h0000_0000);
+repeat(10)	@(posedge clk);
+
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -1566,7 +1702,13 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
 					3'd3	// Burst Length
 					});
 
-m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -1574,7 +1716,13 @@ m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, {22'h3fff_ff,
 					3'd3	// Burst Length
 					});
 
-m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -1582,7 +1730,7 @@ m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, {22'h3fff_ff,
 					3'd3	// Burst Length
 					});
 
-bas = 1;
+bas = 0;
 for(bas=0;bas<2;bas=bas+1)
 begin
 
@@ -1599,7 +1747,7 @@ endcase
 case(quick)
  0: del_max = 16;
  1: del_max = 8;
- 2: del_max = 4;
+ 2: del_max = 8;
 endcase
 
 size = 5;
@@ -1640,7 +1788,13 @@ begin
 		   4: sz_inc = 1;
 		endcase
 
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0+mode[1],	// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd2+mode[0],	// CL
@@ -1649,7 +1803,13 @@ begin
 					});
 
 
-	m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0+mode[1],	// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd3-mode[0],	// CL
@@ -1658,7 +1818,13 @@ begin
 					});
 
 
-	m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0+mode[1],	// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd2+mode[0],	// CL
@@ -1668,7 +1834,7 @@ begin
 
 if(!verbose)	$display("BAS: %0d, Mode: %b", bas, mode);
 
-//for(del=0;del<del_max;del=del+1)
+for(del=0;del<del_max;del=del+1)
 for(size=sz_inc;size<sz_max;size=size+sz_inc)
    begin
 	m0.mem_fill;
@@ -1737,54 +1903,6 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 	   begin
 		adr = (m * page_size) + (m*size*2) + n;
 
-/*
-		case(s)
-		   0:	if(bas[0])	data = sdram0.Bank0[adr];
-			else
-			case(m)
-			   0: data = sdram0.Bank0[n];
-			   1: data = sdram0.Bank1[n+1*size*2];
-			   2: data = sdram0.Bank2[n+2*size*2];
-			   3: data = sdram0.Bank3[n+3*size*2];
-			endcase
-		   1:	if(bas[0])	data = {sdram1b.Bank0[adr],sdram1a.Bank0[adr]};
-			else
-			case(m)
-			   0: data = {sdram1b.Bank0[n],sdram1a.Bank0[n]};
-			   1: data = {sdram1b.Bank1[n+1*size*2],sdram1a.Bank1[n+1*size*2]};
-			   2: data = {sdram1b.Bank2[n+2*size*2],sdram1a.Bank2[n+2*size*2]};
-			   3: data = {sdram1b.Bank3[n+3*size*2],sdram1a.Bank3[n+3*size*2]};
-			endcase
-		   2:	if(bas[0])	data = {sdram2d.Bank0[adr],
-						sdram2c.Bank0[adr],
-						sdram2b.Bank0[adr],
-						sdram2a.Bank0[adr]};
-			else
-			case(m)
-			   0: data = {	sdram2a.Bank0[n],
-					sdram2b.Bank0[n],
-					sdram2c.Bank0[n],
-					sdram2d.Bank0[n] };
-			   1: data = {	sdram2a.Bank1[n+1*size*2],
-					sdram2b.Bank1[n+1*size*2],
-					sdram2c.Bank1[n+1*size*2],
-					sdram2d.Bank1[n+1*size*2] };
-			   2: data = {	sdram2a.Bank2[n+2*size*2],
-					sdram2b.Bank2[n+2*size*2],
-					sdram2c.Bank2[n+2*size*2],
-					sdram2d.Bank2[n+2*size*2] };
-			   3: data = {	sdram2a.Bank3[n+3*size*2],
-					sdram2b.Bank3[n+3*size*2],
-					sdram2c.Bank3[n+3*size*2],
-					sdram2d.Bank3[n+3*size*2] };
-			endcase
-		endcase
-
-*/
-
-
-
-
 		case(s)
 		   0:	if(bas[0])	data = sdram0.Bank0[adr];
 			else
@@ -1812,15 +1930,14 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 			endcase
 		endcase
 
-
-
-
 		if((data !== m0.wr_mem[(m*size*6)+(s*size*2)+n]) | (|data === 1'bx) |
 			(|m0.wr_mem[(m*size*6)+(s*size*2)+n] === 1'bx) )
 		   begin
 			$display("ERROR: WR Data[%0d-%0d] Mismatch: Expected: %x, Got: %x (%0t)",
 			s, (m*size*2)+n, data, m0.wr_mem[(m*size*2)+n],  $time);
 			error_cnt = error_cnt + 1;
+
+			if(error_cnt > 25)	$finish;
 		   end
 
 	   end
@@ -1852,10 +1969,9 @@ integer		sz_inc;
 integer		sz_max, del_max;
 integer		read;
 reg	[2:0]	bas;
-reg	[31:0]	data;
+reg	[31:0]	data, exp;
 
 begin
-
 $display("\n\n");
 $display("*****************************************************");
 $display("*** ASC Read/Write Test 1 ...                     ***");
@@ -1865,10 +1981,6 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
 	m0.wb_wr1(`REG_BASE + `TMS3,	4'hf, 32'hffff_f40a);
-
-	//m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0025);	// 32 bit bus
-	//m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0005);	// 8 bit bus
-	//m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0015);	// 16 bit bus
 
 case(quick)
  0: sz_max = 32;
@@ -1894,19 +2006,17 @@ begin
 
 repeat(1)	@(posedge clk);
 
-
 case(mode)
    0:	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0025);	// 32 bit bus
    1:	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0005);	// 8 bit bus
    2:	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0015);	// 16 bit bus
 endcase
 
-
 repeat(10)	@(posedge clk);
 if(!verbose)	$display("Mode: %b", mode);
 
-//for(del=0;del<del_max;del=del+1)
-//for(size=1;size<sz_max;size=size+1)
+for(del=0;del<del_max;del=del+1)
+for(size=1;size<sz_max;size=size+1)
    begin
 	m0.mem_fill;
 	for(n=0;n<1024;n=n+1)
@@ -1933,7 +2043,7 @@ if(!verbose)	$display("Mode: %b", mode);
 	   begin
 
 		case(mode)
-		   0:	data = {16'hzzzz, n[15:0]};
+		   0:	data = {16'hxxxx, n[15:0]};
 		   1:
 			begin
 				data[31:24] = x[7:0]+3;
@@ -1941,7 +2051,6 @@ if(!verbose)	$display("Mode: %b", mode);
 				data[15:08] = x[7:0]+1;
 				data[07:00] = x[7:0]+0;
 			end
-
 		   2:	begin
 				data[31:16] = x[15:0]+1;
 				data[15:00] = x[15:0]+0;
@@ -1954,13 +2063,13 @@ if(!verbose)	$display("Mode: %b", mode);
 		   2:	x = x + 2;
 		endcase
 
-		//$display("INFO: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-		//	n, data, m0.rd_mem[n],  $time);
+		exp = m0.rd_mem[n];
+		if(mode==0)	exp[31:16] = data[31:16];
 
-		if(data !== m0.rd_mem[n])
+		if(data !== exp)
 		   begin
 			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-			n, data, m0.rd_mem[n],  $time);
+			n, data, exp,  $time);
 			error_cnt = error_cnt + 1;
 		   end
 	   end
@@ -2004,10 +2113,6 @@ $display("*****************************************************\n");
 
 	m0.wb_wr1(`REG_BASE + `TMS3,	4'hf, 32'h0005_2004);
 	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0005);
-
-	//m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0025);	// 32 bit bus
-	//m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0005);	// 8 bit bus
-	//m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0015);	// 16 bit bus
 
 case(quick)
  0: sz_max = 32;
@@ -2117,8 +2222,6 @@ end
 endtask
 
 
-
-
 task	boot;
 input		quick;
 
@@ -2131,7 +2234,7 @@ integer		sz_inc;
 integer		sz_max, del_max;
 integer		read;
 reg	[2:0]	bas;
-reg	[31:0]	data;
+reg	[31:0]	data, exp;
 
 begin
 $display("\n\n");
@@ -2208,7 +2311,7 @@ for(size=1;size<sz_max;size=size+1)
 	   begin
 
 		case(mode)
-		   0:	data = {16'hzzzz, n[15:0]};
+		   0:	data = {16'hxxxx, n[15:0]};
 		   1:
 			begin
 				data[31:24] = x[7:0]+3;
@@ -2229,13 +2332,13 @@ for(size=1;size<sz_max;size=size+1)
 		   2:	x = x + 2;
 		endcase
 
-		//$display("INFO: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-		//	n, data, m0.rd_mem[n],  $time);
+		exp = m0.rd_mem[n];
+		if(mode==0)	exp[31:16] = data[31:16];
 
-		if(data !== m0.rd_mem[n])
+		if(data !== exp)
 		   begin
 			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-			n, data, m0.rd_mem[n],  $time);
+			n, data, exp,  $time);
 			error_cnt = error_cnt + 1;
 		   end
 	   end
@@ -2313,9 +2416,6 @@ for(size=1;size<18;size=size+1)
 		data[31:24] = sram0b.memb2[(m*4)+n];
 `endif
 
-		//$display("INFO: Data[%0d]: Expected: %x, Got: %x (%0t)",
-		//	(m*4)+n, data, m0.rd_mem[(m*size)+n],  $time);
-
 		if(data !== m0.rd_mem[(m*size)+n])
 		   begin
 			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
@@ -2334,10 +2434,6 @@ $display("*****************************************************\n\n");
 
 end
 endtask
-
-
-
-
 
 task sram_wr1;
 
@@ -2358,7 +2454,7 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0803);
 
 size = 4;
-del = 0;
+del = 26;
 mode = 0;
 read = 1;
 write = 1;
@@ -2404,9 +2500,6 @@ for(m=0;m< 4;m=m+1)
 		data[23:16] = sram0b.memb1[(m*32)+n];
 		data[31:24] = sram0b.memb2[(m*32)+n];
 `endif
-
-		//$display("INFO: Data[%0d]: Expected: %x, Got: %x (%0t)",
-		//	(m*4)+n, data, m0.wr_mem[(m*size)+n],  $time);
 
 		if(data !== m0.wr_mem[(m*size)+n])
 		   begin
@@ -2476,7 +2569,6 @@ mode = 1;
 read = 1;
 write = 0;
 
-
 s0.mem_fill;
 
 repeat(5)	@(posedge clk);
@@ -2506,33 +2598,7 @@ for(size=1;size<sz_max;size=size+1)
 	for(n=0;n<(size*4);n=n+1)
 	   begin
 
-/*
-		case(mode)
-		   0:	data = {16'hzzzz, n[15:0]};
-		   1:
-			begin
-				data[31:24] = x[7:0]+3;
-				data[23:16] = x[7:0]+2;
-				data[15:08] = x[7:0]+1;
-				data[07:00] = x[7:0]+0;
-			end
-
-		   2:	begin
-				data[31:16] = x[15:0]+1;
-				data[15:00] = x[15:0]+0;
-			end
-		endcase
-
-		case(mode)
-		   0:	x = x + 1;
-		   1:	x = x + 4;
-		   2:	x = x + 2;
-		endcase
-*/
-
 		data = s0.mem[n];
-		//$display("INFO: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-		//	n, data, m0.rd_mem[n],  $time);
 
 		if(data !== m0.rd_mem[n])
 		   begin
@@ -2552,7 +2618,6 @@ $display("*****************************************************\n\n");
 
 end
 endtask
-
 
 
 task sdram_wp;
@@ -2576,7 +2641,13 @@ $display("*****************************************************\n");
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6020_0200);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -2600,8 +2671,8 @@ case(quick)
  2: del_max = 4;
 endcase
 
-size = 1;
-del = 0;
+size = 4;
+del = 4;
 mode = 0;
 read = 1;
 //force sdram0.Debug = 1;
@@ -2629,7 +2700,13 @@ begin
 		   4: sz_inc = 1;
 		endcase
 
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0+mode[1],	// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd2+mode[0],	// CL
@@ -2684,8 +2761,6 @@ end
 endtask
 
 
-
-
 task sram_wp;
 
 integer		n,m,read,write;
@@ -2704,8 +2779,8 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `TMS4,	4'hf, 32'hffff_ffff);
 	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0903);
 
-size = 4;
-del = 0;
+size = 17;
+del = 15;
 mode = 0;
 read = 1;
 write = 1;
@@ -2753,9 +2828,6 @@ for(m=0;m< 4;m=m+1)
 		data[31:24] = sram0b.memb2[(m*32)+n];
 `endif
 
-		//$display("INFO: Data[%0d]: Expected: %x, Got: %x (%0t)",
-		//	(m*4)+n, data, m0.wr_mem[(m*size)+n],  $time);
-
 		if(data == m0.wr_mem[(m*size)+n])
 		   begin
 			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
@@ -2776,7 +2848,6 @@ $display("*****************************************************\n\n");
 
 end
 endtask
-
 
 
 task sdram_rmw1;
@@ -2822,7 +2893,13 @@ endcase
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -2837,7 +2914,7 @@ m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (kro[0]<<10));
 
 size = 4;
 del = 0;
-mode = 4;
+mode = 0;
 
 //force sdram0.Debug = 1;
 
@@ -2860,7 +2937,13 @@ begin
 	   4: sz_inc = 1;
 	endcase
 
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
 					1'd0+mode[0],	// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd2,		// CL
@@ -2971,10 +3054,6 @@ integer		sz_max, del_max;
 reg	[2:0]	kro;
 reg	[31:0]	data, data1;
 integer		page_size;
-//reg	[31:0]	mem0[0:1024];
-//reg	[31:0]	mem1[0:1024];
-//reg	[31:0]	mem2[0:1024];
-//reg	[31:0]	mem3[0:1024];
 
 begin
 
@@ -3001,7 +3080,13 @@ endcase
 m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
 m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
-m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+					4'd0,	// RESERVED [31:28]
+					4'd7,	// Trfc [27:24]
+					4'd2,	// Trp [23:20]
+					3'd2,	// Trcd [19:17]
+					2'd1,	// Twr [16:15]
+					5'd0,	// RESERVED [14:10]
 					1'd0,	// Wr. Burst Len (1=Single)
 					2'd0,	// Op Mode
 					3'd2,	// CL
@@ -3014,9 +3099,9 @@ for(kro=0;kro<2;kro=kro+1)	// Don't Need this for this test
 begin
 m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (kro[0]<<10));
 
-size = 4;
-del = 2;
-mode = 9;
+size = 1;
+del = 0;
+mode = 0;
 
 //force sdram0.Debug = 1;
 
@@ -3039,7 +3124,15 @@ begin
 	   4: sz_inc = 1;
 	endcase
 
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {22'h3fff_ff,
+	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
+
+					4'd0,		// RESERVED [31:28]
+					4'd7,		// Trfc [27:24]
+					4'd2,		// Trp [23:20]
+					3'd2,		// Trcd [19:17]
+					2'd1,		// Twr [16:15]
+					5'd0,		// RESERVED [14:10]
+
 					1'd0+mode[0],	// Wr. Burst Len (1=Single)
 					2'd0,		// Op Mode
 					3'd2,		// CL
@@ -3114,6 +3207,7 @@ begin
 $display("\n\n");
 $display("*****************************************************");
 $display("*** SRAM Size & Delay RMW Test 1 ...              ***");
+$display("*** Time: %t", $time);
 $display("*****************************************************\n");
 
 	m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
@@ -3174,6 +3268,7 @@ for(m=0;m< 4;m=m+1)
 			$display("ERROR: RD Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
 			(m*32)+n, data, m0.rd_mem[(m*size)+n],  $time);
 			error_cnt = error_cnt + 1;
+			if(error_cnt > 10)	$finish;
 		   end
 
 `ifdef MICRON
@@ -3193,11 +3288,8 @@ for(m=0;m< 4;m=m+1)
 			$display("ERROR: WR Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
 			(m*32)+n, data, m0.wr_mem[(m*size)+n],  $time);
 			error_cnt = error_cnt + 1;
+			if(error_cnt > 10)	$finish;
 		   end
-
-
-
-
 
 	   end
 
@@ -3278,7 +3370,6 @@ for(m=0;m< 4;m=m+1)
    for(n=0;n< size;n=n+1)
 	   begin
 
-		data = mem[(m*32)+n];
 		data = m0.wr_mem[(m*size)+n];
 
 		if(data !== m0.rd_mem[(m*size)+n])
@@ -3287,30 +3378,6 @@ for(m=0;m< 4;m=m+1)
 			(m*32)+n, data, m0.rd_mem[(m*size)+n],  $time);
 			error_cnt = error_cnt + 1;
 		   end
-
-/*
-`ifdef MICRON
-		data[07:00] = sram0a.bank0[(m*32)+n];
-		data[15:08] = sram0a.bank1[(m*32)+n];
-		data[23:16] = sram0b.bank0[(m*32)+n];
-		data[31:24] = sram0b.bank1[(m*32)+n];
-`else
-		data[07:00] = sram0a.memb1[(m*32)+n];
-		data[15:08] = sram0a.memb2[(m*32)+n];
-		data[23:16] = sram0b.memb1[(m*32)+n];
-		data[31:24] = sram0b.memb2[(m*32)+n];
-`endif
-
-		if(data !== m0.wr_mem[(m*size)+n])
-		   begin
-			$display("ERROR: WR Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-			(m*32)+n, data, m0.wr_mem[(m*size)+n],  $time);
-			error_cnt = error_cnt + 1;
-		   end
-*/
-
-
-
 
 	   end
 

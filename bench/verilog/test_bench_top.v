@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: test_bench_top.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
+//  $Id: test_bench_top.v,v 1.3 2001-09-02 02:29:43 rudi Exp $
 //
-//  $Date: 2001-08-10 08:16:21 $
-//  $Revision: 1.2 $
+//  $Date: 2001-09-02 02:29:43 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/08/10 08:16:21  rudi
+//
+//               - Changed IO names to be more clear.
+//               - Uniquifyed define names to be core specific.
+//               - Removed "Refresh Early" configuration
+//
 //               Revision 1.1  2001/07/29 07:34:40  rudi
 //
 //
@@ -119,6 +125,7 @@ integer		error_cnt;
 integer		verbose;
 integer		poc_mode;
 reg		wb_err_check_dis;
+integer		LVL;
 
 integer	cyc_cnt;
 integer	ack_cnt;
@@ -212,7 +219,8 @@ initial
 	verbose = 1;
 	mc_br = 0;
 
-   	repeat(10)	@(posedge clk);
+   	repeat(11)	@(posedge clk);
+	#1;
    	rst = 1;
    	repeat(10)	@(posedge clk);
 
@@ -296,6 +304,7 @@ $display(" :....................................................:");
 	sdram_wr5(2);
 `endif
 
+
 `ifdef FLASH
 	asc_rdwr1(2);
 `endif
@@ -320,49 +329,54 @@ $display(" :....................................................:");
 
 	verbose = 0;
 	done = 0;
+	LVL = 1;
+
 	fork
 
 	   begin
+
 `ifdef FLASH
-		boot(2);
+		boot(LVL);
 `endif
 		m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0000_0000);
-		while(susp_req | suspended)	@(posedge clk);
-		sdram_rd1(2);
-		while(susp_req | suspended)	@(posedge clk);
-		sdram_wr1(2);
-		while(susp_req | suspended)	@(posedge clk);
-		sdram_rd2(2);
-		while(susp_req | suspended)	@(posedge clk);
-		sdram_wr2(2);
-		while(susp_req | suspended)	@(posedge clk);
-		sdram_rd3(2);
-		while(susp_req | suspended)	@(posedge clk);
-		sdram_wr3(2);
-		while(susp_req | suspended)	@(posedge clk);
-		sdram_rd4(2);
-		while(susp_req | suspended)	@(posedge clk);
-		sdram_wr4(2);
 
 		while(susp_req | suspended)	@(posedge clk);
-		sdram_wp(2);
+		sdram_rd1(LVL);
+		while(susp_req | suspended)	@(posedge clk);
+		sdram_wr1(LVL);
+		while(susp_req | suspended)	@(posedge clk);
+		sdram_rd2(LVL);
+
 
 		while(susp_req | suspended)	@(posedge clk);
-		sdram_rmw1(2);
+		sdram_wr2(LVL);
 
 		while(susp_req | suspended)	@(posedge clk);
-		sdram_rmw2(2);
+		sdram_rd3(LVL);
+		while(susp_req | suspended)	@(posedge clk);
+		sdram_wr3(LVL);
+		while(susp_req | suspended)	@(posedge clk);
+		sdram_rd4(LVL);
+		while(susp_req | suspended)	@(posedge clk);
+		sdram_wr4(LVL);
+
+		while(susp_req | suspended)	@(posedge clk);
+		sdram_wp(LVL);
+		while(susp_req | suspended)	@(posedge clk);
+		sdram_rmw1(LVL);
+		while(susp_req | suspended)	@(posedge clk);
+		sdram_rmw2(LVL);
 
 `ifdef MULTI_SDRAM
 		while(susp_req | suspended)	@(posedge clk);
-		sdram_rd5(2);
+		sdram_rd5(LVL);
 		while(susp_req | suspended)	@(posedge clk);
-		sdram_wr5(2);
+		sdram_wr5(LVL);
 `endif
 
 `ifdef FLASH
 		while(susp_req | suspended)	@(posedge clk);
-		asc_rdwr1(2);
+		asc_rdwr1(LVL);
 `endif
 
 `ifdef SRAM
@@ -373,12 +387,18 @@ $display(" :....................................................:");
 		while(susp_req | suspended)	@(posedge clk);
 		sram_wp;
 		while(susp_req | suspended)	@(posedge clk);
+		sram_wp;
+		while(susp_req | suspended)	@(posedge clk);
+		sram_rmw1;
+
+		while(susp_req | suspended)	@(posedge clk);
 		sram_rmw1;
 		while(susp_req | suspended)	@(posedge clk);
 		sram_rmw2;
 `endif
 		while(susp_req | suspended)	@(posedge clk);
-		scs_rdwr1(2);
+		scs_rdwr1(LVL);
+
 
 		done = 1;
 	   end
@@ -391,11 +411,12 @@ $display(" :....................................................:");
 			susp_res;
 		   end
 	   end
-
 	join
 end
-else
-if(0)	// Bus Request testing
+//else
+mc_reset;
+
+if(1)	// Bus Request testing
 begin
 $display(" ......................................................");
 $display(" :                                                    :");
@@ -403,31 +424,33 @@ $display(" :    Bus Request/Grant Testing ...                   :");
 $display(" :....................................................:");
 	verbose = 0;
 	done = 0;
+	LVL = 1;
 	fork
 
 	   begin
 `ifdef FLASH
-		boot(2);
+		boot(LVL);
 `endif
-
 		m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0000_0000);
-		sdram_rd1(2);
-		sdram_wr1(2);
-		sdram_rd3(2);
-		sdram_wr3(2);
-		sdram_rd4(2);
-		sdram_wr4(2);
-		sdram_wp(2);
-		sdram_rmw1(2);
-		sdram_rmw2(2);
+		sdram_rd1(LVL);
+		sdram_wr1(LVL);
+		sdram_rd1(LVL);
+		sdram_wr1(LVL);
+		sdram_rd3(LVL);
+		sdram_wr3(LVL);
+		sdram_rd4(LVL);
+		sdram_wr4(LVL);
+		sdram_wp(LVL);
+		sdram_rmw1(LVL);
+		sdram_rmw2(LVL);
 
 `ifdef MULTI_SDRAM
-		sdram_rd5(2);
-		sdram_wr5(2);
+		sdram_rd5(LVL);
+		sdram_wr5(LVL);
 `endif
 
 `ifdef FLASH
-		asc_rdwr1(2);
+		asc_rdwr1(LVL);
 `endif
 
 `ifdef SRAM
@@ -437,7 +460,7 @@ $display(" :....................................................:");
 		sram_rmw1;
 		sram_rmw2;
 `endif
-		scs_rdwr1(2);
+		scs_rdwr1(LVL);
 
 		done = 1;
 	   end
@@ -460,33 +483,12 @@ $display(" ......................................................");
 $display(" :                                                    :");
 $display(" :    Test Debug Testing ...                          :");
 $display(" :....................................................:");
+	//verbose = 0;
 	//boot(2);
 
 `define	CSR		8'h00
 `define	POC		8'h04
 `define	BA_MASK		8'h08
-
-	//m0.wb_wr1(`REG_BASE + `BA_MASK,	4'hf, 32'h0000_00ff);
-	//m0.wb_rd1(`REG_BASE + `BA_MASK,	4'hf, data );
-	//$display("rd ba_mask: %h", data);
-	//m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6100_0400);
-	//m0.wb_rd1(`REG_BASE + `CSR,	4'hf, data );
-	//$display("rd csr: %h", data);
-	//m0.wb_rd1(`REG_BASE + `BA_MASK,	4'hf, data );
-	//$display("rd ba_mask: %h", data);
-
-	//sdram_rmw1(2);
-	//sram_rmw1;
-	//sdram_wp(2);
-
-	//verbose = 0;
-
-	//sdram_rd3(2);
-	//sdram_wr3(2);
-	//scs_rdwr1(2);
-	//sram_wp;
-
-	//boot(2);
 
 	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0000_0000);
 	//sdram_rmw2(2);
@@ -505,42 +507,32 @@ $display(" :....................................................:");
 	//asc_rdwr1(2);
 	//asc_rdwr1_x(2);
 
+	//sdram_wp(2);
+	//sdram_rmw1(2);
+	//sdram_rmw2(2);
+
+	//sdram_rd2(2);
+	//sdram_wr2(2);
+	sdram_wr1(2);
+/*
 	sdram_rd1(2);
 	sdram_wr1(2);
-	sram_rd1;
-	sram_wr1;
+	sdram_rd2(2);
+	sdram_wr2(2);
+	sdram_rd3(2);
+	sdram_wr3(2);
+	sdram_rd4(2);
+	sdram_wr4(2);
 
-	//sdram_rmw2(2);
-	//sdram_rd5(2);
-	//sdram_wr5(2);
+	sdram_rd5(2);
+	sdram_wr5(2);
 
-	//sdram_rd1(2);
-	//sdram_wr1(2);
-/*
-`ifdef FLASH
-		asc_rdwr1(2);
-`endif
-	sdram_rd1(2);
-	sram_rd1;
-	sram_wr1;
+	sdram_wp(2);
+	sdram_rmw1(2);
+	sdram_rmw2(2);
 */
 
-	//asc_rdwr1(2);
-
-	//sdram_rd1(2);
-	//sdram_rd2(2);
-	//sdram_rd3(2);
-	//sdram_rd4(2);
-
-	//sdram_wr1(2);
-	//sdram_wr2(2);
-	//sdram_wr3(2);
-	//sdram_wr4(2);
-
-`ifdef MULTI_SDRAM
-	//sdram_rd5(2);
-	//sdram_wr5(2);
-`endif
+	//sdram_rmw2(2);
 
 	repeat(100)	@(posedge clk);
 	$finish;
@@ -551,110 +543,22 @@ else
 	//
 	// TEST DEVELOPMENT AREA
 	//
-
-$display("\n\n");
-$display("*****************************************************");
-$display("*** SDRAM Size, Delay & Mode XXX test ...        ***");
-$display("*****************************************************\n");
-
-repeat(2500)	@(posedge clk);
-	//m0.wb_rd_mult(`MEM_BASE, 4'hf, 0, 1);
-	//m0.wb_rd_mult(`MEM_BASE + 4, 4'hf, 0, 1);
-repeat(25)	@(posedge clk);
-
-	//m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0000_0000);
-	m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0200);
-	m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
-
-	//m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0080_0000);
-	//m0.wb_wr1(`REG_BASE + `CSC1,	4'hf, 32'h0080_0000);
-	//m0.wb_wr1(`REG_BASE + `CSC2,	4'hf, 32'h0080_0000);
-	//m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0080_0000);
-
-	m0.wb_wr1(`REG_BASE + `TMS4,	4'hf, 32'hffff_ffff);
-	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0001);
-
-repeat(800)	@(posedge clk);
-$finish;
-
-size = 4;
-del = 4;
-mode = 0;
-read = 0;
-write = 1;
-
-sram0a.mem_fill( 256 );
-sram0b.mem_fill( 256 );
-
-repeat(1)	@(posedge clk);
-
-for(del=0;del<16;del=del+1)
-for(size=1;size<18;size=size+1)
-   begin
-	m0.mem_fill;
-
-	$display("Size: %0d, Delay: %0d", size, del);
-//bw_clear;
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE4 + 0*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE4 + 0*4, 4'hf, del, size);
-	if(write)	m0.wb_wr_mult(`MEM_BASE4 + 32*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE4 + 32*4, 4'hf, del, size);
-	if(write)	m0.wb_wr_mult(`MEM_BASE4 + 64*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE4 + 64*4, 4'hf, del, size);
-	if(write)	m0.wb_wr_mult(`MEM_BASE4 + 96*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE4 + 96*4, 4'hf, del, size);
+	$display("\n\n");
+	$display("*****************************************************");
+	$display("*** Test Development ...                          ***");
+	$display("*****************************************************\n");
 
 
-//bw_report;
-
-repeat(10)	@(posedge clk);
-
-	for(m=0;m< 4;m=m+1)
-	for(n=0;n< size;n=n+1)
-	   begin
-
-/*
-		data[07:00] = sram0a.memb1[(m*32)+n];
-		data[15:08] = sram0a.memb2[(m*32)+n];
-		data[23:16] = sram0b.memb1[(m*32)+n];
-		data[31:24] = sram0b.memb2[(m*32)+n];
-
-
-		data[07:00] = sram0a.bank0[(m*4)+n];
-		data[15:08] = sram0a.bank1[(m*4)+n];
-		data[23:16] = sram0b.bank0[(m*4)+n];
-		data[31:24] = sram0b.bank1[(m*4)+n];
-*/
-
-		//$display("INFO: Data[%0d]: Expected: %x, Got: %x (%0t)",
-		//	(m*4)+n, data, m0.wr_mem[(m*size)+n],  $time);
-
-		if(data !== m0.wr_mem[(m*size)+n])
-		   begin
-			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-			(m*32)+n, data, m0.wr_mem[(m*size)+n],  $time);
-			error_cnt = error_cnt + 1;
-		   end
-
-	   end
-
-   end
-
-show_errors;
-$display("*****************************************************");
-$display("*** Test DONE ...                                 ***");
-$display("*****************************************************\n\n");
-
-
-repeat(100)	@(posedge clk);
-$finish;
-
+	show_errors;
+	$display("*****************************************************");
+	$display("*** Test DONE ...                                 ***");
+	$display("*****************************************************\n\n");
    end
 
    	repeat(100)	@(posedge clk);
    	$finish;
-   end
+
+end	// End of Initial
 
 
 /////////////////////////////////////////////////////////////////////
@@ -668,6 +572,62 @@ always @(posedge clk)
 	//#0.5 mc_clk <= ~mc_clk;
 	//#4.5 mc_clk <= ~mc_clk;
 	mc_clk <= ~mc_clk;
+
+/////////////////////////////////////////////////////////////////////
+//
+// IO Monitors
+//
+
+`define STD	10
+always @(posedge clk)
+	if((wb_ack_o === 1'bx) & ($time > `STD) )
+	   begin
+		$display("ERROR: Wishbone ACK unknown (%t)", $time);
+		error_cnt = error_cnt + 1;
+	   end
+
+always @(posedge clk)
+	if( (wb_err_o === 1'bx) & ($time > `STD) )
+
+	   begin
+		$display("ERROR: Wishbone ERR unknown (%t)", $time);
+		error_cnt = error_cnt + 1;
+	   end
+
+always @(posedge clk)
+	if( (mc_ras_ === 1'bx) & ($time > `STD) )
+
+	   begin
+		$display("ERROR: MC RAS unknown (%t)", $time);
+		error_cnt = error_cnt + 1;
+	   end
+
+always @(posedge clk)
+	if( (mc_cas_ === 1'bx) & ($time > `STD) )
+
+	   begin
+		$display("ERROR: MC CAS unknown (%t)", $time);
+		error_cnt = error_cnt + 1;
+	   end
+
+always @(posedge clk)
+	if( (mc_we_ === 1'bx) & ($time > `STD) )
+
+	   begin
+		$display("ERROR: MC WE unknown (%t)", $time);
+		error_cnt = error_cnt + 1;
+	   end
+
+always @(posedge clk)
+	if( ((|mc_cs_) === 1'bx) & ($time > `STD) )
+
+	   begin
+		$display("ERROR: MC CS unknown (%t)", $time);
+		error_cnt = error_cnt + 1;
+	   end
+
+always @(error_cnt)
+	if(error_cnt > 25)	#500 $finish;
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -700,25 +660,25 @@ always @(poc_mode)
 	   default: rst_dq_val = 32'hzzzz_zzzz;
 	endcase
 
-assign mc_dq = mc_data_oe ? mc_data_o : (~rst ? rst_dq_val : 32'hzzzz_zzzz);
-assign mc_data_i = mc_dq;
+assign #1 mc_dq = mc_data_oe ? mc_data_o : (~rst ? rst_dq_val : 32'hzzzz_zzzz);
+assign #1 mc_data_i = mc_dq;
 
-assign mc_dqp = mc_data_oe ? mc_dp_o : 4'hz;
-assign mc_dp_i = mc_dqp;
+assign #1 mc_dqp = mc_data_oe ? mc_dp_o : 4'hz;
+assign #1 mc_dp_i = mc_dqp;
 
-assign mc_addr = mc_c_oe ? _mc_addr : 24'bz;
-assign mc_dqm = mc_c_oe ? _mc_dqm : 4'bz;
-assign mc_oe_ = mc_c_oe ? _mc_oe_ : 1'bz;
-assign mc_we_ = mc_c_oe ? _mc_we_ : 1'bz;
-assign mc_cas_ = mc_c_oe ? _mc_cas_ : 1'bz;
-assign mc_ras_ = mc_c_oe ? _mc_ras_ : 1'bz;
-assign mc_cke_ = mc_c_oe ? _mc_cke_ : 1'bz;
-assign mc_cs_ = mc_c_oe ? _mc_cs_ : 8'bz;
-assign mc_rp_ = mc_c_oe ? _mc_rp_ : 1'bz;
-assign mc_vpen = mc_c_oe ? _mc_vpen : 1'bz;
-assign mc_adsc_ = mc_c_oe ? _mc_adsc_ : 1'bz;
-assign mc_adv_ = mc_c_oe ? _mc_adv_ : 1'bz;
-assign mc_zz = mc_c_oe ? _mc_zz : 1'bz;
+assign #1 mc_addr = mc_c_oe ? _mc_addr : 24'bz;
+assign #1 mc_dqm = mc_c_oe ? _mc_dqm : 4'bz;
+assign #1 mc_oe_ = mc_c_oe ? _mc_oe_ : 1'bz;
+assign #1 mc_we_ = mc_c_oe ? _mc_we_ : 1'bz;
+assign #1 mc_cas_ = mc_c_oe ? _mc_cas_ : 1'bz;
+assign #1 mc_ras_ = mc_c_oe ? _mc_ras_ : 1'bz;
+assign #1 mc_cke_ = mc_c_oe ? _mc_cke_ : 1'bz;
+assign #1 mc_cs_ = mc_c_oe ? _mc_cs_ : 8'bz;
+assign #1 mc_rp_ = mc_c_oe ? _mc_rp_ : 1'bz;
+assign #1 mc_vpen = mc_c_oe ? _mc_vpen : 1'bz;
+assign #1 mc_adsc_ = mc_c_oe ? _mc_adsc_ : 1'bz;
+assign #1 mc_adv_ = mc_c_oe ? _mc_adv_ : 1'bz;
+assign #1 mc_zz = mc_c_oe ? _mc_zz : 1'bz;
 
 pullup p0(mc_cas_);
 pullup p1(mc_ras_);

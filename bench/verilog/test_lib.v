@@ -38,16 +38,22 @@
 
 //  CVS Log
 //
-//  $Id: test_lib.v,v 1.1 2001-07-29 07:34:40 rudi Exp $
+//  $Id: test_lib.v,v 1.2 2001-09-02 02:29:43 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:40 $
-//  $Revision: 1.1 $
+//  $Date: 2001-09-02 02:29:43 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:40  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.1.1.1  2001/05/13 09:36:38  rudi
 //               Created Directory Structure
 //
@@ -94,12 +100,16 @@ endtask
 task susp_res;
 begin
 
+	#1;
 	susp_req = 1;
 	while(!suspended)	@(posedge clk);
+	#1;
 	susp_req = 0;
 	repeat(20)	@(posedge clk);
+	#1;
 	resume_req = 1;
 	while(suspended)	@(posedge clk);
+	#1;
 	resume_req = 0;
 	repeat(1)	@(posedge clk);
 
@@ -160,7 +170,7 @@ always @(posedge clk)
 */
 
 always @(wd_cnt)
-	if(wd_cnt>5000)
+	if(wd_cnt>6000)
 	   begin
 		$display("\n\n*************************************\n");
 		$display("ERROR: Watch Dog Counter Expired\n");
@@ -189,10 +199,11 @@ endtask
 task mc_reset;
 
 begin
+repeat(10)	@(posedge clk);
 rst = 0;
 repeat(10)	@(posedge clk);
 rst = 1;
-repeat(10)	@(posedge clk);
+repeat(20)	@(posedge clk);
 end
 endtask
 
