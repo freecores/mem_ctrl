@@ -38,16 +38,25 @@
 
 //  CVS Log
 //
-//  $Id: mc_rd_fifo.v,v 1.2 2001-11-29 02:16:28 rudi Exp $
+//  $Id: mc_rd_fifo.v,v 1.3 2001-12-11 02:47:19 rudi Exp $
 //
-//  $Date: 2001-11-29 02:16:28 $
-//  $Revision: 1.2 $
+//  $Date: 2001-12-11 02:47:19 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/11/29 02:16:28  rudi
+//
+//
+//               - More Synthesis cleanup, mostly for speed
+//               - Several bug fixes
+//               - Changed code to avoid auto-precharge and
+//                 burst-terminate combinations (apparently illegal ?)
+//                 Now we will do a manual precharge ...
+//
 //               Revision 1.1  2001/07/29 07:34:41  rudi
 //
 //
@@ -63,9 +72,9 @@
 
 `include "mc_defines.v"
 
-module mc_rd_fifo(clk, rst, din, we, dout, re);
+module mc_rd_fifo(clk, rst, clr, din, we, dout, re);
 
-input		clk, rst;
+input		clk, rst, clr;
 input	[35:0]	din;
 input		we;
 output	[35:0]	dout;
@@ -75,13 +84,17 @@ reg	[3:0]	rd_adr, wr_adr;
 reg	[35:0]	r0, r1, r2, r3;
 reg	[35:0]	dout;
 
-always @(posedge clk)
-	if(!rst)	rd_adr <= #1 4'h1;
+always @(posedge clk or posedge rst)
+	if(rst)		rd_adr <= #1 4'h1;
+	else
+	if(clr)		rd_adr <= #1 4'h1;
 	else
 	if(re)		rd_adr <= #1 {rd_adr[2:0], rd_adr[3]};
 
-always @(posedge clk)
-	if(!rst)	wr_adr <= #1 4'h1;
+always @(posedge clk or posedge rst)
+	if(rst)		wr_adr <= #1 4'h1;
+	else
+	if(clr)		wr_adr <= #1 4'h1;
 	else
 	if(we)		wr_adr <= #1 {wr_adr[2:0], wr_adr[3]};
 

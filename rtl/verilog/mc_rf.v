@@ -37,16 +37,25 @@
 
 //  CVS Log
 //
-//  $Id: mc_rf.v,v 1.5 2001-11-29 02:16:28 rudi Exp $
+//  $Id: mc_rf.v,v 1.6 2001-12-11 02:47:19 rudi Exp $
 //
-//  $Date: 2001-11-29 02:16:28 $
-//  $Revision: 1.5 $
+//  $Date: 2001-12-11 02:47:19 $
+//  $Revision: 1.6 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.5  2001/11/29 02:16:28  rudi
+//
+//
+//               - More Synthesis cleanup, mostly for speed
+//               - Several bug fixes
+//               - Changed code to avoid auto-precharge and
+//                 burst-terminate combinations (apparently illegal ?)
+//                 Now we will do a manual precharge ...
+//
 //               Revision 1.4  2001/10/04 03:19:37  rudi
 //
 //               Fixed Register reads
@@ -257,8 +266,9 @@ reg	[6:0]	wb_addr_r;
 always @(posedge clk)
 	wb_addr_r <= #1 wb_addr_i[6:0];
 
-always @(posedge clk)
-	rf_we <= #1 `MC_REG_SEL & wb_we_i & wb_cyc_i & wb_stb_i & !rf_we;
+always @(posedge clk or posedge rst)
+	if(rst)		rf_we <= #1 1'b0;
+	else		rf_we <= #1 `MC_REG_SEL & wb_we_i & wb_cyc_i & wb_stb_i & !rf_we;
 
 always @(posedge clk or posedge rst)
 	if(rst)		csr_r2 <= #1 8'h0;
@@ -285,8 +295,27 @@ always @(posedge clk or posedge rst)
 	if(rf_we & (wb_addr_r[6:2] == 5'h2) )
 			csc_mask_r <= #1 wb_data_i[10:0];
 
+////////////////////////////////////////////////////////////////////
+//
+// A kludge for cases where there is no clock during reset ...
+//
+
+reg	rst_r1, rst_r2, rst_r3;
+
+always @(posedge clk or posedge rst)
+	if(rst)		rst_r1 <= #1 1'b1;
+	else		rst_r1 <= #1 1'b0;
+
+always @(posedge clk or posedge rst)
+	if(rst)		rst_r2 <= #1 1'b1;
+	else		rst_r2 <= #1 rst_r1;
+
+always @(posedge clk or posedge rst)
+	if(rst)		rst_r3 <= #1 1'b1;
+	else		rst_r3 <= #1 rst_r2;
+
 always @(posedge clk)
-	if(rst)		poc <= #1 mc_data_i;
+	if(rst_r3)	poc <= #1 mc_data_i;
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -301,18 +330,24 @@ always @(posedge clk)
 // Select CSC and TMS Registers
 //
 
-always @(posedge clk)
+always @(posedge clk or posedge rst)
+	if(rst)		cs <= #1 8'h0;
+	else
 	if(cs_le)	cs <= #1 {cs7, cs6, cs5, cs4, cs3, cs2, cs1, cs0};
 
-always @(posedge clk)
+always @(posedge clk or posedge rst)
+	if(rst)		wp_err <= #1 1'b0;
+	else
 	if(cs_le & wb_cyc_i & wb_stb_i)
 			wp_err <= #1	wp_err7 | wp_err6 | wp_err5 | wp_err4 |
 					wp_err3 | wp_err2 | wp_err1 | wp_err0;
 	else
 	if(!wb_cyc_i)	wp_err <= #1 1'b0;
 
-always @(posedge clk)
-	if(cs_le)
+always @(posedge clk or posedge rst)
+	if(rst)		csc <= #1 32'h0;
+	else
+	if(cs_le & wb_cyc_i & wb_stb_i)
 	   begin
 		if(cs0)	csc <= #1 csc0;
 		else
@@ -330,8 +365,10 @@ always @(posedge clk)
 		else	csc <= #1 csc7;
 	   end
 
-always @(posedge clk)
-	if(cs_le | rf_we)
+always @(posedge clk or posedge rst)
+	if(rst)		tms <= #1 32'hffff_ffff;
+	else
+	if((cs_le | rf_we) & wb_cyc_i & wb_stb_i)
 	   begin
 		if(cs0)	tms <= #1 tms0;
 		else
@@ -349,8 +386,10 @@ always @(posedge clk)
 		else	tms <= #1 tms7;
 	   end
 
-always @(posedge clk)
-	if(cs_le)
+always @(posedge clk or posedge rst)
+	if(rst)				sp_csc <= #1 32'h0;
+	else
+	if(cs_le & wb_cyc_i & wb_stb_i)
 	   begin
 		if(spec_req_cs[0])	sp_csc <= #1 csc0;
 		else
@@ -368,8 +407,10 @@ always @(posedge clk)
 		else			sp_csc <= #1 csc7;
 	   end
 
-always @(posedge clk)
-	if(cs_le | rf_we)
+always @(posedge clk or posedge rst)
+	if(rst)				sp_tms <= #1 32'hffff_ffff;
+	else
+	if((cs_le | rf_we) & wb_cyc_i & wb_stb_i)
 	   begin
 		if(spec_req_cs[0])	sp_tms <= #1 tms0;
 		else
@@ -416,11 +457,14 @@ always @(posedge clk)
 assign lmr_ack_fe = lmr_ack_r & !lmr_ack;
 
 // Chip Select Output
-always @(posedge clk)
+always @(posedge clk or posedge rst)
+	if(rst)		spec_req_cs <= #1 8'h0;
+	else
 	if(sreq_cs_le)	spec_req_cs <= #1 spec_req_cs_d;
 
-always @(posedge clk)
-	sreq_cs_le <= #1 (!init_req & !lmr_req) | lmr_ack_fe | init_ack_fe;
+always @(posedge clk or posedge rst)
+	if(rst)	sreq_cs_le <= #1 1'b0;
+	else	sreq_cs_le <= #1 (!init_req & !lmr_req) | lmr_ack_fe | init_ack_fe;
 
 // Make sure only one is serviced at a time
 assign	spec_req_cs_d[0] = spec_req_cs_t[0];
@@ -433,13 +477,15 @@ assign	spec_req_cs_d[6] = spec_req_cs_t[6] & !( |spec_req_cs_t[5:0] );
 assign	spec_req_cs_d[7] = spec_req_cs_t[7] & !( |spec_req_cs_t[6:0] );
 
 // Request Tracking
-always @(posedge clk)
-	init_req <= #1	init_req0 | init_req1 | init_req2 | init_req3 |
-			init_req4 | init_req5 | init_req6 | init_req7;
+always @(posedge clk or posedge rst)
+	if(rst)	init_req <= #1 1'b0;
+	else	init_req <= #1	init_req0 | init_req1 | init_req2 | init_req3 |
+				init_req4 | init_req5 | init_req6 | init_req7;
 
-always @(posedge clk)
-	lmr_req <= #1	lmr_req0 | lmr_req1 | lmr_req2 | lmr_req3 |
-			lmr_req4 | lmr_req5 | lmr_req6 | lmr_req7;
+always @(posedge clk or posedge rst)
+	if(rst)	lmr_req <= #1 1'b0;
+	else	lmr_req <= #1	lmr_req0 | lmr_req1 | lmr_req2 | lmr_req3 |
+				lmr_req4 | lmr_req5 | lmr_req6 | lmr_req7;
 
 assign spec_req_cs_t = !init_req ?	// Load Mode Register Requests
 				{lmr_req7, lmr_req6, lmr_req5, lmr_req4,

@@ -38,16 +38,25 @@
 
 //  CVS Log
 //
-//  $Id: mc_dp.v,v 1.4 2001-11-29 02:16:28 rudi Exp $
+//  $Id: mc_dp.v,v 1.5 2001-12-11 02:47:19 rudi Exp $
 //
-//  $Date: 2001-11-29 02:16:28 $
-//  $Revision: 1.4 $
+//  $Date: 2001-12-11 02:47:19 $
+//  $Revision: 1.5 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.4  2001/11/29 02:16:28  rudi
+//
+//
+//               - More Synthesis cleanup, mostly for speed
+//               - Several bug fixes
+//               - Changed code to avoid auto-precharge and
+//                 burst-terminate combinations (apparently illegal ?)
+//                 Now we will do a manual precharge ...
+//
 //               Revision 1.3  2001/09/24 00:38:21  rudi
 //
 //               Changed Reset to be active high and async.
@@ -155,12 +164,14 @@ always @(mem_type or rd_fifo_out or mc_data_d)
 	    (mem_type == `MC_MEM_TYPE_SRAM)  )	wb_data_o = rd_fifo_out[31:0];
 	else					wb_data_o = mc_data_d;
 
-assign rd_fifo_clr = !(rst | !wb_cyc_i | (wb_we_i & wb_stb_i) );
+//assign rd_fifo_clr = !(rst | !wb_cyc_i | (wb_we_i & wb_stb_i) );
+assign rd_fifo_clr = !wb_cyc_i | (wb_we_i & wb_stb_i);
 assign re = wb_ack_o & wb_read_go;
 
 mc_rd_fifo u0(
 	.clk(	clk			),
-	.rst(	rd_fifo_clr		),
+	.rst(	rst			),
+	.clr(	rd_fifo_clr		),
 	.din(	mc_data_del		),
 	.we(	dv			),
 	.dout(	rd_fifo_out		),

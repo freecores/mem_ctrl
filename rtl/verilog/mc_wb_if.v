@@ -38,16 +38,25 @@
 
 //  CVS Log
 //
-//  $Id: mc_wb_if.v,v 1.4 2001-11-29 02:16:28 rudi Exp $
+//  $Id: mc_wb_if.v,v 1.5 2001-12-11 02:47:19 rudi Exp $
 //
-//  $Date: 2001-11-29 02:16:28 $
-//  $Revision: 1.4 $
+//  $Date: 2001-12-11 02:47:19 $
+//  $Revision: 1.5 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.4  2001/11/29 02:16:28  rudi
+//
+//
+//               - More Synthesis cleanup, mostly for speed
+//               - Several bug fixes
+//               - Changed code to avoid auto-precharge and
+//                 burst-terminate combinations (apparently illegal ?)
+//                 Now we will do a manual precharge ...
+//
 //               Revision 1.3  2001/09/24 00:38:21  rudi
 //
 //               Changed Reset to be active high and async.
@@ -152,26 +161,32 @@ always @(posedge clk or posedge rst)
 	else
 	if(!wb_cyc_i)		rmw_en <= #1 1'b0;
 
-always @(posedge clk)
-	rmw_r <= #1 !wr_hold & wb_we_i & wb_cyc_i & wb_stb_i & rmw_en;
+always @(posedge clk or posedge rst)
+	if(rst)	rmw_r <= #1 1'b0;
+	else	rmw_r <= #1 !wr_hold & wb_we_i & wb_cyc_i & wb_stb_i & rmw_en;
 
 assign rmw = rmw_r | (!wr_hold & wb_we_i & wb_cyc_i & wb_stb_i & rmw_en);
 
-always @(posedge clk)
-	read_go_r1 <= #1 !rmw & wb_cyc_i &
-			((wb_stb_i & mem_sel & !wb_we_i) | read_go_r);
+always @(posedge clk or posedge rst)
+	if(rst)	read_go_r1 <= #1 1'b0;
+	else	read_go_r1 <= #1 !rmw & wb_cyc_i &
+				((wb_stb_i & mem_sel & !wb_we_i) | read_go_r);
 
-always @(posedge clk)
-	read_go_r <= #1 read_go_r1 & wb_cyc_i;
+always @(posedge clk or posedge rst)
+	if(rst)	read_go_r <= #1 1'b0;
+	else	read_go_r <= #1 read_go_r1 & wb_cyc_i;
 
 assign	wb_read_go = !rmw & read_go_r1 & wb_cyc_i;
 
-always @(posedge clk)
-	write_go_r1 <= #1 wb_cyc_i & ((wb_stb_i & mem_sel & wb_we_i) | write_go_r);
+always @(posedge clk or posedge rst)
+	if(rst)	write_go_r1 <= #1 1'b0;
+	else	write_go_r1 <= #1 wb_cyc_i &
+				((wb_stb_i & mem_sel & wb_we_i) | write_go_r);
 
-always @(posedge clk)
-	write_go_r <= #1 write_go_r1 & wb_cyc_i &
-			((wb_we_i & wb_stb_i) | !wb_stb_i);
+always @(posedge clk or posedge rst)
+	if(rst)		write_go_r <= #1 1'b0;
+	else		write_go_r <= #1 write_go_r1 & wb_cyc_i &
+					((wb_we_i & wb_stb_i) | !wb_stb_i);
 
 assign wb_write_go =	!rmw & write_go_r1 & wb_cyc_i &
 			((wb_we_i & wb_stb_i) | !wb_stb_i);
@@ -186,7 +201,9 @@ always @(posedge clk or posedge rst)
 	else
 	if(wb_ack_o | wb_err)	wb_first_r <= #1 1'b0;
 
-always @(posedge clk)
+always @(posedge clk or posedge rst)
+	if(rst)			wr_hold <= #1 1'b0;
+	else
 	if(wb_cyc_i & wb_stb_i)	wr_hold <= #1 wb_we_i;
 
 ////////////////////////////////////////////////////////////////////
@@ -194,13 +211,15 @@ always @(posedge clk)
 // WB Ack
 //
 
-always @(posedge clk)
-	wb_ack_o <= #1 `MC_MEM_SEL ? mem_ack :
-			`MC_REG_SEL & wb_cyc_i & wb_stb_i & !wb_ack_o;
+always @(posedge clk or posedge rst)
+	if(rst)	wb_ack_o <= #1 1'b0;
+	else	wb_ack_o <= #1 `MC_MEM_SEL ? mem_ack :
+				`MC_REG_SEL & wb_cyc_i & wb_stb_i & !wb_ack_o;
 
-always @(posedge clk)
-	wb_err <= #1 wb_cyc_i & wb_stb_i & `MC_MEM_SEL &
-			(par_err | err | wp_err) & !wb_err;
+always @(posedge clk or posedge rst)
+	if(rst)	wb_err <= #1 1'b0;
+	else	wb_err <= #1 wb_cyc_i & wb_stb_i & `MC_MEM_SEL &
+				(par_err | err | wp_err) & !wb_err;
 
 ////////////////////////////////////////////////////////////////////
 //

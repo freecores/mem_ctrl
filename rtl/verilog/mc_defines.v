@@ -37,16 +37,25 @@
 
 //  CVS Log
 //
-//  $Id: mc_defines.v,v 1.4 2001-11-29 02:16:28 rudi Exp $
+//  $Id: mc_defines.v,v 1.5 2001-12-11 02:47:19 rudi Exp $
 //
-//  $Date: 2001-11-29 02:16:28 $
-//  $Revision: 1.4 $
+//  $Date: 2001-12-11 02:47:19 $
+//  $Revision: 1.5 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.4  2001/11/29 02:16:28  rudi
+//
+//
+//               - More Synthesis cleanup, mostly for speed
+//               - Several bug fixes
+//               - Changed code to avoid auto-precharge and
+//                 burst-terminate combinations (apparently illegal ?)
+//                 Now we will do a manual precharge ...
+//
 //               Revision 1.3  2001/09/10 13:44:17  rudi
 //               *** empty log message ***
 //
@@ -113,7 +122,7 @@
 //
 
 // This will be defined by the run script for my test bench ...
-//`define RUDIS_TB 1
+`define RUDIS_TB 1
 
 // Defines which chip select is used for Power On booting
 

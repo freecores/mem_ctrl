@@ -37,16 +37,25 @@
 
 //  CVS Log
 //
-//  $Id: mc_timing.v,v 1.5 2001-11-29 02:16:28 rudi Exp $
+//  $Id: mc_timing.v,v 1.6 2001-12-11 02:47:19 rudi Exp $
 //
-//  $Date: 2001-11-29 02:16:28 $
-//  $Revision: 1.5 $
+//  $Date: 2001-12-11 02:47:19 $
+//  $Revision: 1.6 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.5  2001/11/29 02:16:28  rudi
+//
+//
+//               - More Synthesis cleanup, mostly for speed
+//               - Several bug fixes
+//               - Changed code to avoid auto-precharge and
+//                 burst-terminate combinations (apparently illegal ?)
+//                 Now we will do a manual precharge ...
+//
 //               Revision 1.4  2001/09/24 00:38:21  rudi
 //
 //               Changed Reset to be active high and async.
@@ -238,11 +247,15 @@ REFR		= 66'b000000000000000000000000000000000000000000000000100000000000000000,
 LMR0		= 66'b000000000000000000000000000000000000000000000001000000000000000000,
 LMR1		= 66'b000000000000000000000000000000000000000000000010000000000000000000,
 LMR2		= 66'b000000000000000000000000000000000000000000000100000000000000000000,
+//                   6666666555555555544444444443333333333222222222211111111110000000000
+//                   6543210987654321098765432109876543210987654321098765432109876543210
 INIT0		= 66'b000000000000000000000000000000000000000000001000000000000000000000,
 INIT		= 66'b000000000000000000000000000000000000000000010000000000000000000000,
 INIT_W		= 66'b000000000000000000000000000000000000000000100000000000000000000000,
 INIT_REFR1	= 66'b000000000000000000000000000000000000000001000000000000000000000000,
 INIT_REFR1_W	= 66'b000000000000000000000000000000000000000010000000000000000000000000,
+//                   6666666555555555544444444443333333333222222222211111111110000000000
+//                   6543210987654321098765432109876543210987654321098765432109876543210
 INIT_LMR	= 66'b000000000000000000000000000000000000000100000000000000000000000000,
 SUSP1		= 66'b000000000000000000000000000000000000001000000000000000000000000000,
 SUSP2		= 66'b000000000000000000000000000000000000010000000000000000000000000000,
@@ -432,11 +445,13 @@ always @(posedge clk)
 always @(posedge clk)
 	cs_le <= #1 cs_le_d;
 
-always @(posedge mc_clk)
-	rsts1 <= #1 rst;
+always @(posedge mc_clk or posedge rst)
+	if(rst)		rsts1 <= #1 1'b1;
+	else		rsts1 <= #1 1'b0;
 
-always @(posedge clk)
-	rsts <= #1 rsts1;
+always @(posedge clk or posedge rst)
+	if(rst)		rsts <= #1 1'b1;
+	else		rsts <= #1 rsts1;
 
 // Control Signals Output Enable
 always @(posedge clk or posedge rst)
@@ -456,10 +471,14 @@ always @(posedge clk)
 always @(posedge clk)
 	pack_le2 <= #1 pack_le2_d;
 
-always @(posedge clk)
+always @(posedge clk or posedge rst)
+	if(rst)		mc_adv_r1 <= #1 1'b0;
+	else
 	if(!mc_le)	mc_adv_r1 <= #1 mc_adv;
 
-always @(posedge clk)
+always @(posedge clk or posedge rst)
+	if(rst)		mc_adv_r <= #1 1'b0;
+	else
 	if(!mc_le)	mc_adv_r <= #1 mc_adv_r1;
 
 // Bus Width decoder
@@ -472,40 +491,51 @@ assign cs_a = |cs;
 // Memory to Wishbone Ack
 assign	mem_ack = (mem_ack_d | mem_ack_s) & (wb_read_go | wb_write_go);
 
-always @(posedge clk)
-	mem_ack_r <= #1 mem_ack;
+always @(posedge clk or posedge rst)
+	if(rst)		mem_ack_r <= #1 1'b0;
+	else		mem_ack_r <= #1 mem_ack;
 
 assign	err = err_d;
 
 // SDRAM Command, either delayed (for writes) or straight through
-always @(posedge clk)
-	cmd_r <= #1 cmd;
+always @(posedge clk or posedge rst)
+	if(rst)		cmd_r <= #1 `MC_CMD_NOP;
+	else		cmd_r <= #1 cmd;
 
-always @(posedge clk)
-	cmd_del <= #1 cmd_r;
+always @(posedge clk or posedge rst)
+	if(rst)		cmd_del <= #1 `MC_CMD_NOP;
+	else		cmd_del <= #1 cmd_r;
 
 assign {cs_en, ras_, cas_, we_} = wr_cycle ? cmd_del : cmd;
 
 // Track Timing of Asserting a command
-always @(posedge clk)
+always @(posedge clk or posedge rst)
+	if(rst)		cmd_asserted <= #1 1'b0;
+	else
 	if(!mc_le)	cmd_asserted <= #1 cmd[3];
 
-always @(posedge clk)
+always @(posedge clk or posedge rst)
+	if(rst)		cmd_asserted2 <= #1 1'b0;
+	else
 	if(!mc_le)	cmd_asserted2 <= #1 cmd_asserted;
 
 // Output Enable
-always @(posedge clk)
-	oe_ <= #1 ~oe_d;
+always @(posedge clk or posedge rst)
+	if(rst)		oe_ <= #1 1'b1;
+	else		oe_ <= #1 ~oe_d;
 
 // Memory Bus Data lines Output Enable
-always @(posedge clk)
-	data_oe_r <= #1 data_oe_d;
+always @(posedge clk or posedge rst)
+	if(rst)		data_oe_r <= #1 1'b0;
+	else		data_oe_r <= #1 data_oe_d;
 
-always @(posedge clk)
-	data_oe_r2 <= #1 data_oe_r;
+always @(posedge clk or posedge rst)
+	if(rst)		data_oe_r2 <= #1 1'b0;
+	else		data_oe_r2 <= #1 data_oe_r;
 
-always @(posedge clk)
-	data_oe <= #1 wr_cycle ? data_oe_r2 : data_oe_d;
+always @(posedge clk or posedge rst)
+	if(rst)		data_oe <= #1 1'b0;
+	else		data_oe <= #1 wr_cycle ? data_oe_r2 : data_oe_d;
 
 // Clock Enable
 always @(posedge clk)
@@ -532,11 +562,13 @@ always @(posedge clk)
 	wb_wait_r <= #1 wb_wait_r2;
 
 // Indicates when the row_same and bank_open lookups are done
-always @(posedge clk)
-	lookup_ready1 <= #1 cs_le & wb_stb_i;
+always @(posedge clk or posedge rst)
+	if(rst)		lookup_ready1 <= #1 1'b0;
+	else		lookup_ready1 <= #1 cs_le & wb_stb_i;
 
-always @(posedge clk)
-	lookup_ready2 <= #1 lookup_ready1 & wb_stb_i;
+always @(posedge clk or posedge rst)
+	if(rst)		lookup_ready2 <= #1 1'b0;
+	else		lookup_ready2 <= #1 lookup_ready1 & wb_stb_i;
 
 // Keep Track if it is a SDRAM write cycle
 always @(posedge clk or posedge rst)
@@ -557,8 +589,9 @@ always @(posedge clk or posedge rst)
 // Thses two signals are used to signal that no wishbone cycle is in
 // progress. Need to register them to avoid a very long combinatorial
 // path ....
-always @(posedge clk)
-	no_wb_cycle <= #1 !wb_read_go & !wb_write_go;
+always @(posedge clk or posedge rst)
+	if(rst)		no_wb_cycle <= #1 1'b0;
+	else		no_wb_cycle <= #1 !wb_read_go & !wb_write_go;
 
 // Track ack's for read cycles 
 always @(posedge clk or posedge rst)
@@ -579,23 +612,27 @@ always @(posedge clk)
 	cnt <= #1 cnt_next;
 
 // Suspend/resume Logic
-always @(posedge clk)
-	susp_req_r <= #1 susp_req;
+always @(posedge clk or posedge rst)
+	if(rst)		susp_req_r <= #1 1'b0;
+	else		susp_req_r <= #1 susp_req;
 
-always @(posedge clk)
-	resume_req_r <= #1 resume_req;
+always @(posedge clk or posedge rst)
+	if(rst)		resume_req_r <= #1 1'b0;
+	else		resume_req_r <= #1 resume_req;
 
-always @(posedge clk)
-	suspended <= #1 suspended_d;
+always @(posedge clk or posedge rst)
+	if(rst)		suspended <= #1 1'b0;
+	else		suspended <= #1 suspended_d;
 
-always @(posedge clk)
-	rfr_ack_r <= #1 rfr_ack;
+always @(posedge clk or posedge rst)
+	if(rst)		rfr_ack_r <= #1 1'b0;
+	else		rfr_ack_r <= #1 rfr_ack;
 
 // Suspend Select Logic
 assign susp_sel = susp_sel_r | susp_sel_set;
 
 always @(posedge clk or posedge rst)
-	if(rst)			susp_sel_r <= #1 0;
+	if(rst)			susp_sel_r <= #1 1'b0;
 	else
 	if(susp_sel_set)	susp_sel_r <= #1 1'b1;
 	else
@@ -634,9 +671,10 @@ assign twd_is_zero =  (tms_x[19:16] == 4'h0);
 
 assign timer2_is_zero = (timer2 == 9'h0);
 
-always @(posedge clk)
-	tmr2_done <= #1 timer2_is_zero & !tmr2_ld_trdv & !tmr2_ld_trdz &
-			!tmr2_ld_twpw & !tmr2_ld_twd & !tmr2_ld_twwd & !tmr2_ld_tscsto;
+always @(posedge clk or posedge rst)
+	if(rst)	tmr2_done <= #1 1'b0;
+	else	tmr2_done <= #1 timer2_is_zero & !tmr2_ld_trdv & !tmr2_ld_trdz &
+				!tmr2_ld_twpw & !tmr2_ld_twd & !tmr2_ld_twwd & !tmr2_ld_tscsto;
 
 assign twrp = {2'h0,tms_x[16:15]} + tms_x[23:20];
 
@@ -670,8 +708,9 @@ always @(posedge clk or posedge rst)
 
 assign timer_is_zero = (timer == 8'h0);
 
-always @(posedge clk)
-	tmr_done <= #1 timer_is_zero;
+always @(posedge clk or posedge rst)
+	if(rst)		tmr_done <= #1 1'b0;
+	else		tmr_done <= #1 timer_is_zero;
 
 // Init Refresh Cycles Counter
 always @(posedge clk)
@@ -701,11 +740,15 @@ always @(posedge clk)
 	else
 	if(bc_dec)		burst_cnt <= #1 burst_cnt - 11'h1;
 
-always @(posedge clk)
+always @(posedge clk or posedge rst)
+	if(rst)			burst_fp <= #1 1'b0;
+	else
 	if(burst_cnt_ld)	burst_fp <= #1 (tms_x[2:0] == 3'h7);
 
 // Auto Precharge Enable
-always @(posedge clk)
+always @(posedge clk or posedge rst)
+	if(rst)			ap_en <= #1 1'b0;
+	else
 	if(burst_cnt_ld)	ap_en <= #1 (tms_x[2:0] == 3'h0) & !kro;
 
 assign burst_act = |burst_cnt & ( |tms_x[2:0] );
@@ -713,8 +756,9 @@ assign burst_act = |burst_cnt & ( |tms_x[2:0] );
 always @(posedge clk)
 	burst_act_rd <= #1 |burst_cnt;
 
-always @(posedge clk)
-	dv_r <= #1 dv;
+always @(posedge clk or posedge rst)
+	if(rst)		dv_r <= #1 1'b0;
+	else		dv_r <= #1 dv;
 
 always @(posedge clk)	// Auto Precharge Holding Register
 	cmd_a10_r <= #1 cmd_a10;
@@ -727,7 +771,6 @@ reg		wb_write_go_r;
 
 always @(posedge clk)
 	wb_write_go_r <= #1 wb_write_go;
-
 
 always @(posedge clk or posedge rst)
 	if(rst)			wb_stb_first <= #1 1'b0;

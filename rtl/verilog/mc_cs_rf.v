@@ -37,16 +37,25 @@
 
 //  CVS Log
 //
-//  $Id: mc_cs_rf.v,v 1.4 2001-11-29 02:16:28 rudi Exp $
+//  $Id: mc_cs_rf.v,v 1.5 2001-12-11 02:47:19 rudi Exp $
 //
-//  $Date: 2001-11-29 02:16:28 $
-//  $Revision: 1.4 $
+//  $Date: 2001-12-11 02:47:19 $
+//  $Revision: 1.5 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.4  2001/11/29 02:16:28  rudi
+//
+//
+//               - More Synthesis cleanup, mostly for speed
+//               - Several bug fixes
+//               - Changed code to avoid auto-precharge and
+//                 burst-terminate combinations (apparently illegal ?)
+//                 Now we will do a manual precharge ...
+//
 //               Revision 1.3  2001/09/24 00:38:21  rudi
 //
 //               Changed Reset to be active high and async.
@@ -134,6 +143,21 @@ reg		lmr_req_we;
 
 ////////////////////////////////////////////////////////////////////
 //
+// A kludge for cases where there is no clock during reset ...
+//
+
+reg	rst_r1, rst_r2;
+
+always @(posedge clk or posedge rst)
+	if(rst)		rst_r1 <= #1 1'b1;
+	else		rst_r1 <= #1 1'b0;
+
+always @(posedge clk or posedge rst)
+	if(rst)		rst_r2 <= #1 1'b1;
+	else		rst_r2 <= #1 rst_r1;
+
+////////////////////////////////////////////////////////////////////
+//
 // Write Logic
 //
 
@@ -145,13 +169,13 @@ always @(posedge clk)
 assign sel = addr_r[6:3] == reg_select[3:0];
 
 always @(posedge clk)
-	if(rst)		csc <= #1 (this_cs[2:0] == `MC_DEF_SEL) ? 
-			{26'h0, poc[1:0], 1'b0, poc[3:2], (poc[3:2] != 2'b00)} : 32'h0;
+	if(rst_r2)			csc <= #1 (this_cs[2:0] == `MC_DEF_SEL) ? 
+					{26'h0, poc[1:0], 1'b0, poc[3:2], (poc[3:2] != 2'b00)} : 32'h0;
 	else
 	if(rf_we & sel & !addr_r[2])	csc <= #1 din;
 
 always @(posedge clk)
-	if(rst)				tms <= #1 (this_cs[2:0] == `MC_DEF_SEL) ?
+	if(rst_r2)			tms <= #1 (this_cs[2:0] == `MC_DEF_SEL) ?
 						`MC_DEF_POR_TMS : 32'h0;
 	else
 	if(rf_we & sel & addr_r[2])	tms <= #1 din;
@@ -160,8 +184,9 @@ always @(posedge clk)
 //
 // Load Mode Register Request/Ack Logic
 //
-always @(posedge clk)
-	lmr_req_we <= #1 rf_we & sel & addr_r[2];
+always @(posedge clk or posedge rst)
+	if(rst)		lmr_req_we <= #1 1'b0;
+	else		lmr_req_we <= #1 rf_we & sel & addr_r[2];
 
 always @(posedge clk or posedge rst)
 	if(rst)		lmr_req <= #1 1'b0;
@@ -175,8 +200,9 @@ always @(posedge clk or posedge rst)
 //
 // Initialize SDRAM Request/Ack & tracking logic
 //
-always @(posedge clk)
-	init_req_we <= #1 rf_we & sel & !addr_r[2];
+always @(posedge clk or posedge rst)
+	if(rst)	init_req_we <= #1 1'b0;
+	else	init_req_we <= #1 rf_we & sel & !addr_r[2];
 
 always @(posedge clk or posedge rst)
 	if(rst)		init_req <= #1 1'b0;

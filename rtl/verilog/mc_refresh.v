@@ -38,16 +38,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_refresh.v,v 1.2 2001-09-24 00:38:21 rudi Exp $
+//  $Id: mc_refresh.v,v 1.3 2001-12-11 02:47:19 rudi Exp $
 //
-//  $Date: 2001-09-24 00:38:21 $
-//  $Revision: 1.2 $
+//  $Date: 2001-12-11 02:47:19 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/09/24 00:38:21  rudi
+//
+//               Changed Reset to be active high and async.
+//
 //               Revision 1.1  2001/07/29 07:34:41  rudi
 //
 //
@@ -142,8 +146,9 @@ This is for a 200 Mhz WISHBONE Bus.
 // Prescaler
 //
 
-always @(posedge clk)
-	rfr_en <= #1 |cs_need_rfr;
+always @(posedge clk or posedge rst)
+	if(rst)		rfr_en <= #1 1'b0;
+	else		rfr_en <= #1 |cs_need_rfr;
 
 always @(posedge clk or posedge rst)
 	if(rst)				ps_cnt <= #1 8'h0;
@@ -154,16 +159,18 @@ always @(posedge clk or posedge rst)
 
 assign ps_cnt_clr = (ps_cnt == rfr_ps_val) & (rfr_ps_val != 8'h0);
 
-always @(posedge clk)
-	rfr_early <= #1 (ps_cnt == rfr_ps_val);
+always @(posedge clk or posedge rst)
+	if(rst)		rfr_early <= #1 1'b0;
+	else		rfr_early <= #1 (ps_cnt == rfr_ps_val);
 
 ////////////////////////////////////////////////////////////////////
 //
 // Refresh Counter
 //
 
-always @(posedge clk)
-	rfr_ce <= #1 ps_cnt_clr;
+always @(posedge clk or posedge rst)
+	if(rst)		rfr_ce <= #1 1'b0;
+	else		rfr_ce <= #1 ps_cnt_clr;
 
 always @(posedge clk or posedge rst)
 	if(rst)			rfr_cnt <= #1 8'h0;
