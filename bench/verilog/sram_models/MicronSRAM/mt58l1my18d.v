@@ -100,14 +100,16 @@ task mem_fill;
 input	x;
 
 integer		a, n, x;
-
+reg	[15:0]	data;
 begin
 
 a=0;
 for(n=0;n<x;n=n+1)
    begin
-	bank0[n] = a;
-	bank1[n] = a+1;
+	data = a;
+	bank0[n] = { ^data[15:8], data[15:8], ^data[7:0], data[7:0]};
+	data = a+1;
+	bank1[n] = { ^data[15:8], data[15:8], ^data[7:0], data[7:0]};
 	a=a+2;
    end
 

@@ -11,8 +11,9 @@
 ////                                                             ////
 /////////////////////////////////////////////////////////////////////
 ////                                                             ////
-//// Copyright (C) 2000 Rudolf Usselmann                         ////
-////                    rudi@asics.ws                            ////
+//// Copyright (C) 2000-2002 Rudolf Usselmann                    ////
+////                         www.asics.ws                        ////
+////                         rudi@asics.ws                       ////
 ////                                                             ////
 //// This source file may be used and distributed without        ////
 //// restriction provided that this copyright statement is not   ////
@@ -37,16 +38,25 @@
 
 //  CVS Log
 //
-//  $Id: test_bench_top.v,v 1.6 2001-11-29 02:17:36 rudi Exp $
+//  $Id: test_bench_top.v,v 1.7 2002-01-21 13:10:37 rudi Exp $
 //
-//  $Date: 2001-11-29 02:17:36 $
-//  $Revision: 1.6 $
+//  $Date: 2002-01-21 13:10:37 $
+//  $Revision: 1.7 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.6  2001/11/29 02:17:36  rudi
+//
+//
+//               - More Synthesis cleanup, mostly for speed
+//               - Several bug fixes
+//               - Changed code to avoid auto-precharge and
+//                 burst-terminate combinations (apparently illegal ?)
+//                 Now we will do a manual precharge ...
+//
 //               Revision 1.5  2001/11/13 00:45:15  rudi
 //
 //               Just minor test bench update, syncing all the files.
@@ -156,6 +166,7 @@ integer		sz_inc;
 integer		read, write;
 integer		done;
 integer		adr;
+integer		do_quick;
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -215,6 +226,7 @@ initial
 	$shm_probe("AS",test,"AS");
 	$display("INFO: Signal dump enabled ...\n\n");
 `endif
+	do_quick = 0;
 	poc_mode = 1;
 	#1;
 	poc_mode = 0;
@@ -260,6 +272,7 @@ $display(" :....................................................:");
 	sdram_rd4(0);
 	sdram_wr4(0);
 	sdram_wp(0);
+	sdram_bo;
 	sdram_rmw1(0);
 	sdram_rmw2(0);
 	rmw_cross1(0);
@@ -290,7 +303,9 @@ $display(" ......................................................");
 $display(" :                                                    :");
 $display(" :    Short Regression Run ...                        :");
 $display(" :....................................................:");
+	do_quick = 1;
 	verbose = 0;
+	LVL = 1;
 
 `ifdef FLASH
 	boot(LVL);
@@ -310,6 +325,7 @@ $display(" :....................................................:");
 	sdram_wr4(LVL);
 
 	sdram_wp(LVL);
+	sdram_bo;
 	sdram_rmw1(LVL);
 	sdram_rmw2(LVL);
 	rmw_cross1(LVL);
@@ -335,14 +351,14 @@ $display(" :....................................................:");
 
 	mc_reset;
    end
-//else
-if(0)	// Suspend resume testing
+if(do_quick)	// Suspend resume testing
 begin
 $display(" ......................................................");
 $display(" :                                                    :");
 $display(" :    Suspend Resume Testing ...                      :");
 $display(" :....................................................:");
-	verbose = 0;
+	//verbose = 0;
+	//LVL = 1;
 	done = 0;
 	fork
 	   begin
@@ -374,11 +390,15 @@ $display(" :....................................................:");
 		while(susp_req | suspended)	@(posedge clk);
 		sdram_wp(LVL);
 		while(susp_req | suspended)	@(posedge clk);
+		sdram_bo;
+		while(susp_req | suspended)	@(posedge clk);
 		sdram_rmw1(LVL);
 		while(susp_req | suspended)	@(posedge clk);
 		sdram_rmw2(LVL);
+
 		while(susp_req | suspended)	@(posedge clk);
 		rmw_cross1(LVL);
+
 
 `ifdef MULTI_SDRAM
 		while(susp_req | suspended)	@(posedge clk);
@@ -386,7 +406,6 @@ $display(" :....................................................:");
 		while(susp_req | suspended)	@(posedge clk);
 		sdram_wr5(LVL);
 `endif
-
 
 `ifdef FLASH
 		while(susp_req | suspended)	@(posedge clk);
@@ -428,8 +447,7 @@ $display(" :....................................................:");
 
 	mc_reset;
 end
-//else
-if(0)	// Bus Request testing
+if(do_quick)	// Bus Request testing
 begin
 $display(" ......................................................");
 $display(" :                                                    :");
@@ -454,6 +472,7 @@ $display(" :....................................................:");
 		sdram_rd4(LVL);
 		sdram_wr4(LVL);
 		sdram_wp(LVL);
+		sdram_bo;
 		sdram_rmw1(LVL);
 		sdram_rmw2(LVL);
 
@@ -490,53 +509,14 @@ $display(" :....................................................:");
 	join
 end
 else
-if(1)	// Debug Tests
+if(0)	// Debug Tests
    begin
 $display(" ......................................................");
 $display(" :                                                    :");
 $display(" :    Test Debug Testing ...                          :");
 $display(" :....................................................:");
-	//verbose = 0;
+	verbose = 0;
 	//boot(2);
-
-/*
-`define	CSR		8'h00
-`define	POC		8'h04
-`define	BA_MASK		8'h08
-
-`define	CSR_MASK	32'hff00_07fe
-`define BAM_MASK	32'h0000_07ff
-`define CSC_MASK	32'hffff_ffff
-`define TMS_MASK	32'hffff_ffff
-
-	m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'hffff_ffff);
-	m0.wb_wr1(`REG_BASE + `BA_MASK,	4'hf, 32'hffff_ffff);
-	m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'hffff_ffff);
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, 32'hffff_ffff);
-	m0.wb_wr1(`REG_BASE + `CSC1,	4'hf, 32'hffff_ffff);
-	m0.wb_wr1(`REG_BASE + `TMS1,	4'hf, 32'hffff_ffff);
-	m0.wb_wr1(`REG_BASE + `CSC2,	4'hf, 32'hffff_ffff);
-	@(posedge clk);
-	m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, 32'hffff_ffff);
-	@(posedge clk);
-	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'hffff_ffff);
-	@(posedge clk);
-	m0.wb_wr1(`REG_BASE + `TMS3,	4'hf, 32'hffff_ffff);
-
-	m0.wb_rd1(`REG_BASE + `CSR,	4'hf, data);
-	m0.wb_rd1(`REG_BASE + `BA_MASK,	4'hf, data);
-	m0.wb_rd1(`REG_BASE + `CSC0,	4'hf, data);
-	m0.wb_rd1(`REG_BASE + `TMS0,	4'hf, data);
-	m0.wb_rd1(`REG_BASE + `CSC1,	4'hf, data);
-	m0.wb_rd1(`REG_BASE + `TMS1,	4'hf, data);
-	m0.wb_rd1(`REG_BASE + `CSC2,	4'hf, data);
-	m0.wb_rd1(`REG_BASE + `TMS2,	4'hf, data);
-	m0.wb_rd1(`REG_BASE + `CSC3,	4'hf, data);
-	m0.wb_rd1(`REG_BASE + `TMS3,	4'hf, data);
-
-
-*/
-
 
 	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0000_0000);
 	//sdram_rd1(2);
@@ -565,9 +545,6 @@ $display(" :....................................................:");
 	//sdram_rd1b(2);
 
 
-
-	//sdram_rd1(2);
-	//sdram_wr1(2);
 
 
 	//sdram_rd4(2);
@@ -599,13 +576,18 @@ $display(" :....................................................:");
 	sdram_wr3(2);
 	sdram_rd4(2);
 	sdram_wr4(2);
+
+
 	sdram_rd5(2);
 	sdram_wr5(2);
 
 	sdram_wp(2);
+
 	sdram_rmw1(2);
 	sdram_rmw2(2); 
 	rmw_cross1(2);
+
+
 
 
 	repeat(100)	@(posedge clk);
@@ -717,6 +699,25 @@ always @(mc_cke_)
 // IO Buffers
 //
 
+reg	rst_r1, rst_r2, rst_r3, rst_r4;
+
+always @(posedge clk or posedge rst)
+	if(rst)		rst_r1 <= #1 1'b1;
+	else		rst_r1 <= #1 1'b0;
+
+always @(posedge clk or posedge rst)
+	if(rst)		rst_r2 <= #1 1'b1;
+	else		rst_r2 <= #1 rst_r1;
+
+always @(posedge clk or posedge rst)
+	if(rst)		rst_r3 <= #1 1'b1;
+	else		rst_r3 <= #1 rst_r2;
+
+always @(posedge clk or posedge rst)
+	if(rst)		rst_r4 <= #1 1'b1;
+	else		rst_r4 <= #1 rst_r3;
+
+
 wire	[31:0]	mc_dq;
 wire	[3:0]	mc_dqp;
 wire	[23:0]	_mc_addr;
@@ -743,30 +744,7 @@ always @(poc_mode)
 	   default: rst_dq_val = 32'hzzzz_zzzz;
 	endcase
 
-/*
-assign #1 mc_dq = mc_data_oe ? mc_data_o : (rst ? rst_dq_val : 32'hzzzz_zzzz);
-assign #1 mc_data_i = mc_dq;
-
-assign #1 mc_dqp = mc_data_oe ? mc_dp_o : 4'hz;
-assign #1 mc_dp_i = mc_dqp;
-
-assign #1 mc_addr = mc_c_oe ? _mc_addr : 24'bz;
-assign #1 mc_dqm = mc_c_oe ? _mc_dqm : 4'bz;
-assign #1 mc_oe_ = mc_c_oe ? _mc_oe_ : 1'bz;
-assign #1 mc_we_ = mc_c_oe ? _mc_we_ : 1'bz;
-assign #1 mc_cas_ = mc_c_oe ? _mc_cas_ : 1'bz;
-assign #1 mc_ras_ = mc_c_oe ? _mc_ras_ : 1'bz;
-assign #1 mc_cke_ = mc_c_oe ? _mc_cke_ : 1'bz;
-assign #1 mc_cs_ = mc_c_oe ? _mc_cs_ : 8'bz;
-assign #1 mc_rp_ = mc_c_oe ? _mc_rp_ : 1'bz;
-assign #1 mc_vpen = mc_c_oe ? _mc_vpen : 1'bz;
-assign #1 mc_adsc_ = mc_c_oe ? _mc_adsc_ : 1'bz;
-assign #1 mc_adv_ = mc_c_oe ? _mc_adv_ : 1'bz;
-assign #1 mc_zz = mc_c_oe ? _mc_zz : 1'bz;
-*/
-
-
-assign  mc_dq = mc_data_oe ? mc_data_o : (rst ? rst_dq_val : 32'hzzzz_zzzz);
+assign  mc_dq = mc_data_oe ? mc_data_o : (rst_r4 ? rst_dq_val : 32'hzzzz_zzzz);
 assign  mc_data_i = mc_dq;
 
 assign  mc_dqp = mc_data_oe ? mc_dp_o : 4'hz;
@@ -785,9 +763,6 @@ assign  mc_vpen = mc_c_oe ? _mc_vpen : 1'bz;
 assign  mc_adsc_ = mc_c_oe ? _mc_adsc_ : 1'bz;
 assign  mc_adv_ = mc_c_oe ? _mc_adv_ : 1'bz;
 assign  mc_zz = mc_c_oe ? _mc_zz : 1'bz;
-
-
-
 
 pullup p0(mc_cas_);
 pullup p1(mc_ras_);
@@ -893,6 +868,8 @@ sync_cs_dev s0(
 // Memory Models
 //
 
+wire	[27:0]	dq_tmp;
+
 `ifdef SDRAM0
 //	Model:  MT48LC2M32B2 (2Meg x 32 x 4 Banks)
 mt48lc2m32b2 sdram0(
@@ -908,7 +885,6 @@ mt48lc2m32b2 sdram0(
 		.Dqm(		mc_dqm		)
 		);
 
-wire	[27:0]	dq_tmp;
 mt48lc2m32b2 sdram0p(
 		.Dq(		{dq_tmp, mc_dqp}),
 		.Addr(		mc_addr[10:0]	),
@@ -922,34 +898,7 @@ mt48lc2m32b2 sdram0p(
 		.Dqm(		mc_dqm		)
 		);
 
-task fill_mem;
-input	size;
-
-integer		size, n;
-reg	[31:0]	data;
-
-begin
-sdram0.mem_fill(size);
-
-for(n=0;n<size;n=n+1)
-   begin
-	data = sdram0.Bank0[n];
-	sdram0p.Bank0[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
-	data = sdram0.Bank1[n];
-	sdram0p.Bank1[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
-	data = sdram0.Bank2[n];
-	sdram0p.Bank2[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
-	data = sdram0.Bank3[n];
-	sdram0p.Bank3[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
-   end
-
-
-end
-endtask
-
-
 `endif
-
 
 `ifdef MULTI_SDRAM
 //	Model:  MT48LC2M32B2 (2Meg x 32 x 4 Banks)
@@ -967,6 +916,20 @@ mt48lc2m32b2 sdram1(
 		.Dqm(		mc_dqm		)
 		);
 
+mt48lc2m32b2 sdram1p(
+		.Dq(		{dq_tmp, mc_dqp}	),
+		.Addr(		mc_addr[10:0]		),
+		.Ba(		mc_addr[14:13]		),
+		.Clk(		mc_clk			),
+		.Cke(		mc_cke_			),
+		.Cs_n(		mc_cs_[1]		),
+		.Ras_n(		mc_ras_			),
+		.Cas_n(		mc_cas_			),
+		.We_n(		mc_we_			),
+		.Dqm(		mc_dqm			)
+		);
+
+
 //	Model:  MT48LC2M32B2 (2Meg x 32 x 4 Banks)
 mt48lc2m32b2 sdram2(
 		.Dq(		mc_dq		),
@@ -981,6 +944,18 @@ mt48lc2m32b2 sdram2(
 		.Dqm(		mc_dqm		)
 		);
 
+mt48lc2m32b2 sdram2p(
+		.Dq(		{dq_tmp, mc_dqp}),
+		.Addr(		mc_addr[10:0]	),
+		.Ba(		mc_addr[14:13]	),
+		.Clk(		mc_clk		),
+		.Cke(		mc_cke_		),
+		.Cs_n(		mc_cs_[2]	),
+		.Ras_n(		mc_ras_		),
+		.Cas_n(		mc_cas_		),
+		.We_n(		mc_we_		),
+		.Dqm(		mc_dqm		)
+		);
 
 mt48lc16m16a2 sdram1a(
 		.Dq(		mc_dq[15:0]	),
@@ -1007,60 +982,6 @@ mt48lc16m16a2 sdram1b(
 		.We_n(		mc_we_		),
 		.Dqm(		mc_dqm[3:2]	)
 		);
-
-/*
-mt48lc8m8a2 sdram2a(
-		.Dq(		mc_dq[07:00]	),
-		.Addr(		mc_addr[11:0]	),
-		.Ba(		mc_addr[14:13]	),
-		.Clk(		mc_clk		),
-		.Cke(		mc_cke_		),
-		.Cs_n(		mc_cs_[2]	),
-		.Ras_n(		mc_ras_		),
-		.Cas_n(		mc_cas_		),
-		.We_n(		mc_we_		),
-		.Dqm(		mc_dqm[0]	)
-		);
-
-mt48lc8m8a2 sdram2b(
-		.Dq(		mc_dq[15:08]	),
-		.Addr(		mc_addr[11:0]	),
-		.Ba(		mc_addr[14:13]	),
-		.Clk(		mc_clk		),
-		.Cke(		mc_cke_		),
-		.Cs_n(		mc_cs_[2]	),
-		.Ras_n(		mc_ras_		),
-		.Cas_n(		mc_cas_		),
-		.We_n(		mc_we_		),
-		.Dqm(		mc_dqm[1]	)
-		);
-
-mt48lc8m8a2 sdram2c(
-		.Dq(		mc_dq[23:16]	),
-		.Addr(		mc_addr[11:0]	),
-		.Ba(		mc_addr[14:13]	),
-		.Clk(		mc_clk		),
-		.Cke(		mc_cke_		),
-		.Cs_n(		mc_cs_[2]	),
-		.Ras_n(		mc_ras_		),
-		.Cas_n(		mc_cas_		),
-		.We_n(		mc_we_		),
-		.Dqm(		mc_dqm[2]	)
-		);
-
-mt48lc8m8a2 sdram2d(
-		.Dq(		mc_dq[31:24]	),
-		.Addr(		mc_addr[11:0]	),
-		.Ba(		mc_addr[14:13]	),
-		.Clk(		mc_clk		),
-		.Cke(		mc_cke_		),
-		.Cs_n(		mc_cs_[2]	),
-		.Ras_n(		mc_ras_		),
-		.Cas_n(		mc_cas_		),
-		.We_n(		mc_we_		),
-		.Dqm(		mc_dqm[3]	)
-		);
-*/
 
 `endif
 

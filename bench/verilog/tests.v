@@ -11,8 +11,9 @@
 ////                                                             ////
 /////////////////////////////////////////////////////////////////////
 ////                                                             ////
-//// Copyright (C) 2000 Rudolf Usselmann                         ////
-////                    rudi@asics.ws                            ////
+//// Copyright (C) 2000-2002 Rudolf Usselmann                    ////
+////                         www.asics.ws                        ////
+////                         rudi@asics.ws                       ////
 ////                                                             ////
 //// This source file may be used and distributed without        ////
 //// restriction provided that this copyright statement is not   ////
@@ -37,16 +38,25 @@
 
 //  CVS Log
 //
-//  $Id: tests.v,v 1.6 2001-11-29 02:17:36 rudi Exp $
+//  $Id: tests.v,v 1.7 2002-01-21 13:10:37 rudi Exp $
 //
-//  $Date: 2001-11-29 02:17:36 $
-//  $Revision: 1.6 $
+//  $Date: 2002-01-21 13:10:37 $
+//  $Revision: 1.7 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.6  2001/11/29 02:17:36  rudi
+//
+//
+//               - More Synthesis cleanup, mostly for speed
+//               - Several bug fixes
+//               - Changed code to avoid auto-precharge and
+//                 burst-terminate combinations (apparently illegal ?)
+//                 Now we will do a manual precharge ...
+//
 //               Revision 1.5  2001/11/13 00:45:19  rudi
 //
 //               Just minor test bench update, syncing all the files.
@@ -123,9 +133,11 @@ kro = 1;
 for(kro=0;kro<2;kro=kro+1)
 for(bas=0;bas<2;bas=bas+1)
 begin
-m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0021 | (bas<<9) | (kro<<10));
 
-sdram0.mem_fill(1024);
+// Parity Enabled !
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (bas<<9) | (kro<<10));
+
+fill_mem(1024);
 
 	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 					4'd0,		// RESERVED [31:28]
@@ -178,164 +190,6 @@ end
 endtask
 
 
-
-
-task sdram_rd1b;
-input		quick;
-
-integer		quick;
-integer		n;
-integer		del, size;
-reg	[7:0]	mode;
-reg	[2:0]	bs;
-integer		sz_inc;
-integer		sz_max, del_max;
-integer		write;
-reg	[31:0]	memd;
-
-begin
-$display("\n\n");
-$display("*****************************************************");
-$display("*** SDRAM Size, Delay & Mode Read test 1B ...     ***");
-$display("*****************************************************\n");
-
-m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
-m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
-
-m0.wb_wr1(`REG_BASE + `TMS5,	4'hf, {
-					4'd0,		// RESERVED [31:28]
-					4'd7,		// Trfc [27:24]
-					4'd2,		// Trp [23:20]
-					3'd2,		// Trcd [19:17]
-					2'd1,		// Twr [16:15]
-					5'd0,		// RESERVED [14:10]
-
-					1'd0,	// Wr. Burst Len (1=Single)
-					2'd0,	// Op Mode
-					3'd2,	// CL
-					1'b0,	// Burst Type (0=Seq;1=Inter)
-					3'd3	// Burst Length
-					});
-
-//m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821);
-m0.wb_wr1(`REG_BASE + `CSC5,	4'hf, 32'h0000_0091);
-
-case(quick)
- 0: sz_max = 64;
- 1: sz_max = 32;
- 2: sz_max = 16;
-endcase
-
-case(quick)
- 0: del_max = 16;
- 1: del_max = 8;
- 2: del_max = 4;
-endcase
-
-size = 4;
-del = 1;
-mode = 2;
-write = 0;
-//force sdram0.Debug = 1;
-
-for(mode=0;mode<10;mode=mode+1)
-begin
-	sdram1a.mem_fill(1024);
-	sdram1b.mem_fill(1024);
-	//sdram0p.mem_fill(1024);
-
-	case(mode[3:1])
-	   0: bs = 0;
-	   1: bs = 1;
-	   2: bs = 2;
-	   3: bs = 3;
-	   4: bs = 7;
-	endcase
-	
-	case(mode[3:1])
-	   0: sz_inc = 1;
-	   1: sz_inc = 2;
-	   2: sz_inc = 4;
-	   3: sz_inc = 8;
-	   4: sz_inc = 1;
-	endcase
-
-
-/*
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
-					4'd0,		// RESERVED [31:28]
-					4'd7,		// Trfc [27:24]
-					4'd2,		// Trp [23:20]
-					3'd2,		// Trcd [19:17]
-					2'd1,		// Twr [16:15]
-					5'd0,		// RESERVED [14:10]
-					1'd0,		// Wr. Burst Len (1=Single)
-					2'd0,		// Op Mode
-					3'd2+mode[0],	// CL
-					1'b0,		// Burst Type (0=Seq;1=Inter)
-					3'd0+bs		// Burst Length
-					});
-*/
-
-	m0.wb_wr1(`REG_BASE + `TMS5,	4'hf, {
-					4'd0,		// RESERVED [31:28]
-					4'd8,		// Trfc [27:24]
-					4'd3,		// Trp [23:20]
-					3'd3,		// Trcd [19:17]
-					2'd2,		// Twr [16:15]
-					5'd0,		// RESERVED [14:10]
-					1'd0,		// Wr. Burst Len (1=Single)
-					2'd0,		// Op Mode
-					3'd2+mode[0],	// CL
-					1'b0,		// Burst Type (0=Seq;1=Inter)
-					3'd0+bs		// Burst Length
-					});
-
-if(!verbose)	$display("Mode: %b", mode);
-for(del=0;del<del_max;del=del+1)
-for(size=sz_inc;size<sz_max;size=size+sz_inc)
-   begin
-	m0.mem_fill;
-
-	if(verbose)	$display("Mode: %b, Size: %0d, Delay: %0d", mode,  size, del);
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE +        0, 4'hf, del, size);
-	m0.wb_rd_mult(`MEM_BASE +        0, 4'hf, del, size);
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE + size*1*4, 4'hf, del, size);
-	m0.wb_rd_mult(`MEM_BASE + size*1*4, 4'hf, del, size);
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE + size*2*4, 4'hf, del, size);
-	m0.wb_rd_mult(`MEM_BASE + size*2*4, 4'hf, del, size);
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE + size*3*4, 4'hf, del, size);
-	m0.wb_rd_mult(`MEM_BASE + size*3*4, 4'hf, del, size);
-
-	for(n=0;n<(size*4);n=n+1)
-	   begin
-		memd = {sdram1b.Bank0[n], sdram1a.Bank0[n]};
-
-		if((memd !== m0.rd_mem[n]) |
-			(|memd === 1'bx) |
-			(|m0.rd_mem[n] === 1'bx)	 )
-		   begin
-			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-			n, memd, m0.rd_mem[n],  $time);
-			error_cnt = error_cnt + 1;
-		   end
-	   end
-   end
-
-end
-
-show_errors;
-$display("*****************************************************");
-$display("*** Test DONE ...                                 ***");
-$display("*****************************************************\n\n");
-end
-endtask
-
-
 task sdram_rd1;
 input		quick;
 
@@ -372,8 +226,8 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 					3'd3	// Burst Length
 					});
 
-//m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821);
-m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0021);
+// Parity Enabled !
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821);
 
 case(quick)
  0: sz_max = 64;
@@ -390,13 +244,13 @@ endcase
 size = 4;
 del = 0;
 mode = 2;
-write = 0;
+write = 1;	// enable writes for parity !
+
 //force sdram0.Debug = 1;
 
 for(mode=0;mode<10;mode=mode+1)
 begin
 	sdram0.mem_fill(1024);
-	//sdram0p.mem_fill(1024);
 
 	case(mode[3:1])
 	   0: bs = 0;
@@ -413,23 +267,6 @@ begin
 	   3: sz_inc = 8;
 	   4: sz_inc = 1;
 	endcase
-
-
-/*
-	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
-					4'd0,		// RESERVED [31:28]
-					4'd7,		// Trfc [27:24]
-					4'd2,		// Trp [23:20]
-					3'd2,		// Trcd [19:17]
-					2'd1,		// Twr [16:15]
-					5'd0,		// RESERVED [14:10]
-					1'd0,		// Wr. Burst Len (1=Single)
-					2'd0,		// Op Mode
-					3'd2+mode[0],	// CL
-					1'b0,		// Burst Type (0=Seq;1=Inter)
-					3'd0+bs		// Burst Length
-					});
-*/
 
 	m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 					4'd0,		// RESERVED [31:28]
@@ -524,6 +361,7 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 					3'd3	// Burst Length
 					});
 
+// Parity Enabled !
 m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821);
 
 case(quick)
@@ -683,6 +521,7 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 bas = 0;
 for(bas=0;bas<2;bas=bas+1)
 begin
+// Parity Enabled !
 m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (bas[0]<<9));
 
 size = 33;
@@ -791,8 +630,6 @@ end
 endtask
 
 
-
-
 task sdram_wr2;
 input		quick;
 
@@ -838,8 +675,8 @@ bas = 0;
 for(bas=0;bas<2;bas=bas+1)
 begin
 
-//m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (bas[0]<<9));
-m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0021 | (bas[0]<<9));
+// Parity Enabled !
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (bas[0]<<9));
 
 case(quick)
  0: sz_max = 32;
@@ -856,7 +693,6 @@ endcase
 size = 3;
 del = 0;
 mode = 10;
-read = 1;
 //force sdram0.Debug = 1;
 
 for(mode=0;mode<20;mode=mode+1)
@@ -913,24 +749,16 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 				bas, mode,  size, del);
 
 			m0.wb_wr_mult(`MEM_BASE + (page_size*0*4) + size*0*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE + (page_size*0*4) + size*0*4, 4'hf, del, size);
 			m0.wb_wr_mult(`MEM_BASE + (page_size*0*4) + size*1*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE + (page_size*0*4) + size*1*4, 4'hf, del, size);
 
 			m0.wb_wr_mult(`MEM_BASE + (page_size*1*4) + size*2*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE + (page_size*1*4) + size*2*4, 4'hf, del, size);
 			m0.wb_wr_mult(`MEM_BASE + (page_size*1*4) + size*3*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE + (page_size*1*4) + size*3*4, 4'hf, del, size);
 
 			m0.wb_wr_mult(`MEM_BASE + (page_size*2*4) + size*4*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE + (page_size*2*4) + size*4*4, 4'hf, del, size);
 			m0.wb_wr_mult(`MEM_BASE + (page_size*2*4) + size*5*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE + (page_size*2*4) + size*5*4, 4'hf, del, size);
 
 			m0.wb_wr_mult(`MEM_BASE + (page_size*3*4) + size*6*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE + (page_size*3*4) + size*6*4, 4'hf, del, size);
 			m0.wb_wr_mult(`MEM_BASE + (page_size*3*4) + size*7*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE + (page_size*3*4) + size*7*4, 4'hf, del, size);
 
 	repeat(10)	@(posedge clk);
 
@@ -947,16 +775,6 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 		   2: data = sdram0.Bank2[n+2*size*2];
 		   3: data = sdram0.Bank3[n+3*size*2];
 		endcase
-
-
-		if(read & 0)
-		if((data !== m0.rd_mem[(m*size*2)+n]) | (|data === 1'bx) |
-			(|m0.rd_mem[(m*size*2)+n] === 1'bx) )
-		   begin
-			$display("ERROR: RD Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-			(m*size*2)+n, data, m0.rd_mem[(m*size*2)+n],  $time);
-			error_cnt = error_cnt + 1;
-		   end
 
 		if((data !== m0.wr_mem[(m*size*2)+n]) | (|data === 1'bx) |
 			(|m0.wr_mem[(m*size*2)+n] === 1'bx) )
@@ -1018,7 +836,8 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 					3'd3	// Burst Length
 					});
 
-m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0421);
+// Parity Enabled !
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0c21);
 
 case(quick)
  0: sz_max = 65;
@@ -1092,7 +911,6 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 
 	if(verbose)	$display("Mode: %b, Size: %0d, Delay: %0d", mode,  size, del);
 
-//bw_clear;
 	if(write)	m0.wb_wr_mult(`MEM_BASE +        0, 4'hf, del, size);
 	m0.wb_rd_mult(`MEM_BASE +        0, 4'hf, del, size);
 
@@ -1104,8 +922,6 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 
 	if(write)	m0.wb_wr_mult(`MEM_BASE + size*3*4, 4'hf, del, size);
 	m0.wb_rd_mult(`MEM_BASE + size*3*4, 4'hf, del, size);
-
-//bw_report;
 
 	for(n=0;n<(size*4);n=n+1)
 	   begin
@@ -1168,7 +984,8 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 					3'd3	// Burst Length
 					});
 
-m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0421);
+// Parity Enabled !
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0c21);
 
 case(quick)
  0: sz_max = 64;
@@ -1185,7 +1002,7 @@ endcase
 size = 8;
 del = 0;
 mode = 16;
-read = 0;
+read = 1;
 //force sdram0.Debug = 1;
 
 for(mode=0;mode<20;mode=mode+1)
@@ -1341,7 +1158,10 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 bas = 0;
 for(bas=0;bas<2;bas=bas+1)
 begin
-m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0421 | (bas[0]<<9));
+fill_mem(1024);
+
+// Parity Enabled !
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0c21 | (bas[0]<<9));
 
 size = 2;
 del = 3;
@@ -1509,7 +1329,8 @@ bas = 0;
 for(bas=0;bas<2;bas=bas+1)
 begin
 
-m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0421 | (bas[0]<<9));
+// Parity Enabled !
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0c21 | (bas[0]<<9));
 
 case(quick)
  0: sz_max = 32;
@@ -1531,7 +1352,8 @@ read = 1;
 for(mode=0;mode<20;mode=mode+1)
 begin
 
-	sdram0.mem_fill(1024);
+	//sdram0.mem_fill(1024);
+	fill_mem(1024);
 
 	case(mode[4:2])
 	   0: bs = 0;
@@ -1722,13 +1544,15 @@ m0.wb_wr1(`REG_BASE + `TMS2,	4'hf, {
 bas = 0;
 for(bas=0;bas<2;bas=bas+1)
 begin
-m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0421 | (bas[0]<<9));
-m0.wb_wr1(`REG_BASE + `CSC1,	4'hf, 32'h0020_0021 | (bas[0]<<9));
-m0.wb_wr1(`REG_BASE + `CSC2,	4'hf, 32'h0040_0421 | (bas[0]<<9));
+
+// Parity Enabled !
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0c21 | (bas[0]<<9));
+m0.wb_wr1(`REG_BASE + `CSC1,	4'hf, 32'h0020_0c21 | (bas[0]<<9));
+m0.wb_wr1(`REG_BASE + `CSC2,	4'hf, 32'h0040_0c21 | (bas[0]<<9));
 
 size = 2;
-del = 0;
-mode = 4;
+del = 3;
+mode = 0;
 write = 1;
 if(0)
    begin
@@ -1737,12 +1561,16 @@ if(0)
 	force sdram2.Debug = 1;
    end
 
-//for(mode=0;mode<10;mode=mode+1)
+for(mode=0;mode<10;mode=mode+1)
 for(mode=0;mode<10;mode=mode+1)
 begin
-	sdram0.mem_fill(1024);
-	sdram1.mem_fill(1024);
-	sdram2.mem_fill(1024);
+	//sdram0.mem_fill(1024);
+	//sdram1.mem_fill(1024);
+	//sdram2.mem_fill(1024);
+
+	fill_mem(1024);
+	fill_mem1(1024);
+	fill_mem2(1024);
 
 	case(mode[3:1])
 	   0: bs = 0;
@@ -1807,7 +1635,6 @@ if(!verbose)	$display("BAS: %0d, Mode: %b", bas, mode);
 
 for(del=0;del<del_max;del=del+1)
 for(size=sz_inc;size<sz_max;size=size+sz_inc)
-//for(size=sz_inc;size<8;size=size+sz_inc)
    begin
 	m0.mem_fill;
 	if(verbose)	$display("BAS: %0d, Mode: %b, Size: %0d, Delay: %0d",
@@ -2025,9 +1852,10 @@ bas = 0;
 for(bas=0;bas<2;bas=bas+1)
 begin
 
-m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0421 | (bas[0]<<9));
-m0.wb_wr1(`REG_BASE + `CSC1,	4'hf, 32'h0020_0421 | (bas[0]<<9));
-m0.wb_wr1(`REG_BASE + `CSC2,	4'hf, 32'h0040_0421 | (bas[0]<<9));
+// Parity Enabled !
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0c21 | (bas[0]<<9));
+m0.wb_wr1(`REG_BASE + `CSC1,	4'hf, 32'h0020_0c21 | (bas[0]<<9));
+m0.wb_wr1(`REG_BASE + `CSC2,	4'hf, 32'h0040_0c21 | (bas[0]<<9));
 
 case(quick)
  0: sz_max = 32;
@@ -2056,9 +1884,13 @@ if(0)
 for(mode=0;mode<20;mode=mode+1)
 begin
 
-	sdram0.mem_fill(1024);
-	sdram1.mem_fill(1024);
-	sdram2.mem_fill(1024);
+	//sdram0.mem_fill(1024);
+	//sdram1.mem_fill(1024);
+	//sdram2.mem_fill(1024);
+
+	fill_mem(1024);
+	fill_mem1(1024);
+	fill_mem2(1024);
 
 	case(mode[4:2])
 	   0: bs = 0;
@@ -2289,6 +2121,7 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 					3'd3	// Burst Length
 					});
 
+// Parity Enabled !
 m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821);
 
 case(quick)
@@ -2358,7 +2191,7 @@ case(a_mode)
 endcase
 
 repeat(10)	@(posedge clk);
-if(!verbose)	$display("Mode: %b", mode);
+if(!verbose)	$display("Mode: %b, Bus Width: %0d, Cycle Delay: %0d", mode, a_mode, cycle);
 
 for(del=0;del<del_max;del=del+1)
 for(size=sz_inc;size<sz_max;size=size+sz_inc)
@@ -2400,7 +2233,6 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 	repeat(cycle)	@(posedge clk);
 	m0.wb_rmw2(`MEM_BASE3 + size*7*4,
 		`MEM_BASE + (page_size*3*4) + size*7*4, 4'hf, del, size, size);
-
 
 	repeat(10)	@(posedge clk);
 
@@ -2460,69 +2292,6 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 			error_cnt = error_cnt + 1;
 		   end
 	   end
-
-
-
-
-/*
-	m0.mem_fill;
-	for(n=0;n<1024;n=n+1)
-		m0.wr_mem[n] = 32'hffff_ffff;
-		
-	if(verbose)	$display("Mode: %0d, Size: %0d, Delay: %0d", mode,  size, del);
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE3 + size*0*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE3 + size*0*4, 4'hf, del, size);
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE3 + size*1*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE3 + size*1*4, 4'hf, del, size);
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE3 + size*2*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE3 + size*2*4, 4'hf, del, size);
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE3 + size*3*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE3 + size*3*4, 4'hf, del, size);
-
-	repeat(10)	@(posedge clk);
-
-	x = 0;
-	for(n=0;n<(size*4);n=n+1)
-	   begin
-
-		case(mode)
-		   0:	data = {16'hxxxx, n[15:0]};
-		   1:
-			begin
-				data[31:24] = x[7:0]+3;
-				data[23:16] = x[7:0]+2;
-				data[15:08] = x[7:0]+1;
-				data[07:00] = x[7:0]+0;
-			end
-		   2:	begin
-				data[31:16] = x[15:0]+1;
-				data[15:00] = x[15:0]+0;
-			end
-		endcase
-
-		case(mode)
-		   0:	x = x + 1;
-		   1:	x = x + 4;
-		   2:	x = x + 2;
-		endcase
-
-		exp = m0.rd_mem[n];
-		if(mode==0)	exp[31:16] = data[31:16];
-
-		if(data !== exp)
-		   begin
-			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-			n, data, exp,  $time);
-			error_cnt = error_cnt + 1;
-		   end
-
-	   end
-*/
-
    end
 
 end
@@ -2578,7 +2347,6 @@ del = 0;
 mode = 0;
 read = 1;
 write = 1;
-
 
 sz_max = 6;
 for(mode=0;mode<3;mode=mode+1)
@@ -2665,142 +2433,6 @@ $display("*****************************************************\n\n");
 
 end
 endtask
-
-
-task	asc_rdwr1_x;
-input		quick;
-
-integer		quick;
-integer		x,s,n,m,adr;
-integer		del, size;
-reg	[7:0]	mode;
-reg	[2:0]	bs;
-integer		sz_inc;
-integer		sz_max, del_max;
-integer		read;
-reg	[2:0]	bas;
-reg	[31:0]	data;
-
-begin
-
-$display("\n\n");
-$display("*****************************************************");
-$display("*** ASC Read/Write Test 1 X ...                   ***");
-$display("*****************************************************\n");
-
-	m0.wb_wr1(`REG_BASE + `CSR,	4'hf, 32'h6030_0300);
-	m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
-
-	m0.wb_wr1(`REG_BASE + `TMS3,	4'hf, 32'h0005_2004);
-	m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0060_0005);
-
-case(quick)
- 0: sz_max = 32;
- 1: sz_max = 32;
- 2: sz_max = 16;
-endcase
-
-case(quick)
- 0: del_max = 16;
- 1: del_max = 8;
- 2: del_max = 4;
-endcase
-
-size = 1;
-del = 0;
-mode = 1;
-read = 1;
-write = 0;
-
-
-//for(mode=0;mode<8;mode=mode+1)
-begin
-
-repeat(1)	@(posedge clk);
-
-
-//m0.wb_wr1(`REG_BASE + `CSC3,	4'hf, 32'h0081_0005);
-
-	//m0.wb_wr1(`REG_BASE + `TMS3,	4'hf, 32'h0000_2004 + (mode<<16));
-	m0.wb_wr1(`REG_BASE + `TMS3,	4'hf, 32'h0001_200a);
-
-repeat(10)	@(posedge clk);
-if(!verbose)	$display("Mode: %b", mode);
-
-//for(del=0;del<del_max;del=del+1)
-//for(size=1;size<sz_max;size=size+1)
-   begin
-	m0.mem_fill;
-	for(n=0;n<1024;n=n+1)
-		m0.wr_mem[n] = 32'hffff_ffff;
-		
-	if(verbose)	$display("Mode: %b, Size: %0d, Delay: %0d", mode,  size, del);
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE3 + size*0*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE3 + size*0*4, 4'hf, del, size);
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE3 + size*1*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE3 + size*1*4, 4'hf, del, size);
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE3 + size*2*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE3 + size*2*4, 4'hf, del, size);
-
-	if(write)	m0.wb_wr_mult(`MEM_BASE3 + size*3*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE3 + size*3*4, 4'hf, del, size);
-
-	repeat(10)	@(posedge clk);
-
-	x = 0;
-
-	for(n=0;n<(size*4);n=n+1)
-	   begin
-
-		case(mode)
-		   0:	data = {16'hzzzz, n[15:0]};
-		   1:
-			begin
-				data[31:24] = x[7:0]+3;
-				data[23:16] = x[7:0]+2;
-				data[15:08] = x[7:0]+1;
-				data[07:00] = x[7:0]+0;
-			end
-
-		   2:	begin
-				data[31:16] = x[15:0]+1;
-				data[15:00] = x[15:0]+0;
-			end
-		endcase
-
-		case(mode)
-		   0:	x = x + 1;
-		   1:	x = x + 4;
-		   2:	x = x + 2;
-		endcase
-
-		//$display("INFO: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-		//	n, data, m0.rd_mem[n],  $time);
-
-		if(data !== m0.rd_mem[n])
-		   begin
-			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-			n, data, m0.rd_mem[n],  $time);
-			error_cnt = error_cnt + 1;
-		   end
-	   end
-
-
-   end
-
-end
-
-show_errors;
-$display("*****************************************************");
-$display("*** Test DONE ...                                 ***");
-$display("*****************************************************\n\n");
-
-end
-endtask
-
 
 task	boot;
 input		quick;
@@ -2950,15 +2582,17 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
 	m0.wb_wr1(`REG_BASE + `TMS4,	4'hf, 32'hffff_ffff);
-	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0003);
 
-size = 4;
+// Parity Enabled !
+	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0803);
+
+size = 5;
 del = 0;
 read = 1;
-write = 0;
+write = 1;
 
-sram0a.mem_fill( 256 );
-sram0b.mem_fill( 256 );
+sram0a.mem_fill( 1024 );
+sram0b.mem_fill( 1024 );
 
 repeat(1)	@(posedge clk);
 
@@ -2968,28 +2602,26 @@ for(size=1;size<18;size=size+1)
 	m0.mem_fill;
 
 	$display("Size: %0d, Delay: %0d", size, del);
-//bw_clear;
 
-	if(write)	m0.wb_wr_mult(`MEM_BASE4 + 0*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE4 + 0*4, 4'hf, del, size);
-	if(write)	m0.wb_wr_mult(`MEM_BASE4 + 4*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE4 + 4*4, 4'hf, del, size);
-	if(write)	m0.wb_wr_mult(`MEM_BASE4 + 8*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE4 + 8*4, 4'hf, del, size);
-	if(write)	m0.wb_wr_mult(`MEM_BASE4 + 12*4, 4'hf, del, size);
-	if(read)	m0.wb_rd_mult(`MEM_BASE4 + 12*4, 4'hf, del, size);
-
-//bw_report;
+	if(write)	m0.wb_wr_mult(`MEM_BASE4 + size * 0 * 16, 4'hf, del, size);
+	if(read)	m0.wb_rd_mult(`MEM_BASE4 + size * 0 * 16, 4'hf, del, size);
+	if(write)	m0.wb_wr_mult(`MEM_BASE4 + size * 1 * 16, 4'hf, del, size);
+	if(read)	m0.wb_rd_mult(`MEM_BASE4 + size * 1 * 16, 4'hf, del, size);
+	if(write)	m0.wb_wr_mult(`MEM_BASE4 + size * 2 * 16, 4'hf, del, size);
+	if(read)	m0.wb_rd_mult(`MEM_BASE4 + size * 2 * 16, 4'hf, del, size);
+	if(write)	m0.wb_wr_mult(`MEM_BASE4 + size * 3 * 16, 4'hf, del, size);
+	if(read)	m0.wb_rd_mult(`MEM_BASE4 + size * 3 * 16, 4'hf, del, size);
 
 	for(m=0;m< 4;m=m+1)
 	for(n=0;n< size;n=n+1)
 	   begin
 
 `ifdef MICRON
-		data[07:00] = sram0a.bank0[(m*4)+n];
-		data[15:08] = sram0a.bank1[(m*4)+n];
-		data[23:16] = sram0b.bank0[(m*4)+n];
-		data[31:24] = sram0b.bank1[(m*4)+n];
+		data[07:00] = sram0a.bank0[(m*size*4)+n];
+		data[15:08] = sram0a.bank1[(m*size*4)+n];
+		data[23:16] = sram0b.bank0[(m*size*4)+n];
+		data[31:24] = sram0b.bank1[(m*size*4)+n];
+
 `else
 		data[07:00] = sram0a.memb1[(m*4)+n];
 		data[15:08] = sram0a.memb2[(m*4)+n];
@@ -2997,10 +2629,11 @@ for(size=1;size<18;size=size+1)
 		data[31:24] = sram0b.memb2[(m*4)+n];
 `endif
 
+
 		if(data !== m0.rd_mem[(m*size)+n])
 		   begin
 			$display("ERROR: Data[%0d] Mismatch: Expected: %x, Got: %x (%0t)",
-			(m*4)+n, data, m0.rd_mem[(m*size)+n],  $time);
+			(m*size*4)+n, data, m0.rd_mem[(m*size)+n],  $time);
 			error_cnt = error_cnt + 1;
 		   end
 
@@ -3032,6 +2665,7 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
 	m0.wb_wr1(`REG_BASE + `TMS4,	4'hf, 32'hffff_ffff);
+// Parity Enabled !
 	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0803);
 
 size = 4;
@@ -3236,8 +2870,8 @@ m0.wb_wr1(`REG_BASE + `TMS0,	4'hf, {
 					3'd3	// Burst Length
 					});
 
-//m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0921);
-m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0121);
+// Parity Enabled !
+m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0921);
 
 wb_err_check_dis=1;
 case(quick)
@@ -3260,7 +2894,6 @@ read = 1;
 
 for(mode=0;mode<20;mode=mode+1)
 begin
-	//sdram0.mem_fill(1024);
 	fill_mem(1024);
 
 	case(mode[4:2])
@@ -3360,6 +2993,7 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
 	m0.wb_wr1(`REG_BASE + `TMS4,	4'hf, 32'hffff_ffff);
+// Parity Enabled !
 	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0903);
 
 size = 17;
@@ -3497,6 +3131,8 @@ cycle=3;
 for(cycle=0;cycle<8;cycle=cycle+1)
 for(kro=0;kro<2;kro=kro+1)	// Don't Need this for this test
 begin
+
+// Parity nabled !
 m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (kro[0]<<10));
 
 size = 2;
@@ -3580,10 +3216,10 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 	m0.wb_rmw(`MEM_BASE + (page_size*3*4) + size*7*4, 4'hf, del, size, size);
 
 	repeat(cycle)	@(posedge clk);
+
 	for(m=0;m<4;m=m+1)
 	for(n=0;n<(size*2);n=n+1)
 	   begin
-
 		case(m)
 		   0: data = mem0[n];
 		   1: data = mem1[n];
@@ -3598,7 +3234,6 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
 			(m*size*2)+n, data, m0.rd_mem[(m*size*2)+n],  $time);
 			error_cnt = error_cnt + 1;
 		   end
-
 	   end
 
 	repeat(10)	@(posedge clk);
@@ -3695,6 +3330,8 @@ kro = 1;
 for(cycle=0;cycle<8;cycle=cycle+1)
 for(kro=0;kro<2;kro=kro+1)	// Don't Need this for this test
 begin
+
+// Parity nabled !
 m0.wb_wr1(`REG_BASE + `CSC0,	4'hf, 32'h0000_0821 | (kro[0]<<10));
 
 size = 1;
@@ -3747,7 +3384,6 @@ for(size=sz_inc;size<sz_max;size=size+sz_inc)
    begin
 	m0.mem_fill;
 	fill_mem(1024);
-
 
 	if(verbose)	$display("KRO: %0d, Mode: %b, Size: %0d, Delay: %0d, Cyc.Del: %0d (%t)",
 				kro, mode,  size, del, cycle, $time);
@@ -3821,6 +3457,7 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
 	m0.wb_wr1(`REG_BASE + `TMS4,	4'hf, 32'hffff_ffff);
+// Parity Enabled !
 	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0003);
 
 size = 1;
@@ -3929,14 +3566,15 @@ $display("*****************************************************\n");
 	m0.wb_wr1(`REG_BASE + `BA_MASK, 4'hf, 32'h0000_00f0);
 
 	m0.wb_wr1(`REG_BASE + `TMS4,	4'hf, 32'hffff_ffff);
-	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0003);
+// Parity Enabled !
+	m0.wb_wr1(`REG_BASE + `CSC4,	4'hf, 32'h0080_0803);
 
 size = 4;
 del = 4;
 
 repeat(1)	@(posedge clk);
 
-//for(del=0;del<16;del=del+1)
+for(del=0;del<16;del=del+1)
 for(size=1;size<18;size=size+1)
    begin
 	m0.mem_fill;

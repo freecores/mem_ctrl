@@ -12,8 +12,9 @@
 ////                                                             ////
 /////////////////////////////////////////////////////////////////////
 ////                                                             ////
-//// Copyright (C) 2000 Rudolf Usselmann                         ////
-////                    rudi@asics.ws                            ////
+//// Copyright (C) 2000-2002 Rudolf Usselmann                    ////
+////                         www.asics.ws                        ////
+////                         rudi@asics.ws                       ////
 ////                                                             ////
 //// This source file may be used and distributed without        ////
 //// restriction provided that this copyright statement is not   ////
@@ -38,16 +39,20 @@
 
 //  CVS Log
 //
-//  $Id: test_lib.v,v 1.3 2001-11-11 01:52:03 rudi Exp $
+//  $Id: test_lib.v,v 1.4 2002-01-21 13:10:37 rudi Exp $
 //
-//  $Date: 2001-11-11 01:52:03 $
-//  $Revision: 1.3 $
+//  $Date: 2002-01-21 13:10:37 $
+//  $Revision: 1.4 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.3  2001/11/11 01:52:03  rudi
+//
+//               Minor fixes to testbench ...
+//
 //               Revision 1.2  2001/09/02 02:29:43  rudi
 //
 //               Fixed the TMS register setup to be tight and correct.
@@ -109,17 +114,16 @@ begin
 	while(!suspended)	@(posedge clk);
 	#1;
 	susp_req = 0;
-	repeat(20)	@(posedge clk);
+	repeat(20)		@(posedge clk);
 	#1;
 	resume_req = 1;
 	while(suspended)	@(posedge clk);
 	#1;
 	resume_req = 0;
-	repeat(1)	@(posedge clk);
+	repeat(1)		@(posedge clk);
 
 end
 endtask
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -167,12 +171,6 @@ always @(wb_ack_o or wb_stb_i)
 always @(posedge clk)
 	wd_cnt = wd_cnt + 1;
 
-/*
-always @(posedge clk)
-	if(wb_cyc_i | wb_ack_o )	wd_cnt <= #1 0;
-	else				wd_cnt <= #1 wd_cnt + 1;
-*/
-
 always @(wd_cnt)
 	if(wd_cnt>6000)
 	   begin
@@ -182,10 +180,10 @@ always @(wd_cnt)
 		$finish;
 	   end
 
-
-
-
-
+/////////////////////////////////////////////////////////////////////
+//
+// Show Errors
+//
 
 task show_errors;
 
@@ -199,6 +197,10 @@ $display("     +--------------------+");
 end
 endtask
 
+/////////////////////////////////////////////////////////////////////
+//
+// Reset Memory Controller
+//
 
 task mc_reset;
 
@@ -210,4 +212,83 @@ rst = 0;
 repeat(20)	@(posedge clk);
 end
 endtask
+
+/////////////////////////////////////////////////////////////////////
+//
+// Fill SDRAMs
+//
+
+task fill_mem;
+input	size;
+
+integer		size, n;
+reg	[31:0]	data;
+
+begin
+sdram0.mem_fill(size);
+
+for(n=0;n<size;n=n+1)
+   begin
+	data = sdram0.Bank0[n];
+	sdram0p.Bank0[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
+	data = sdram0.Bank1[n];
+	sdram0p.Bank1[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
+	data = sdram0.Bank2[n];
+	sdram0p.Bank2[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
+	data = sdram0.Bank3[n];
+	sdram0p.Bank3[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
+   end
+
+end
+endtask
+
+
+task fill_mem1;
+input	size;
+
+integer		size, n;
+reg	[31:0]	data;
+
+begin
+sdram1.mem_fill(size);
+
+for(n=0;n<size;n=n+1)
+   begin
+	data = sdram1.Bank0[n];
+	sdram1p.Bank0[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
+	data = sdram1.Bank1[n];
+	sdram1p.Bank1[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
+	data = sdram1.Bank2[n];
+	sdram1p.Bank2[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
+	data = sdram1.Bank3[n];
+	sdram1p.Bank3[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
+   end
+
+end
+endtask
+
+task fill_mem2;
+input	size;
+
+integer		size, n;
+reg	[31:0]	data;
+
+begin
+sdram2.mem_fill(size);
+
+for(n=0;n<size;n=n+1)
+   begin
+	data = sdram2.Bank0[n];
+	sdram2p.Bank0[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
+	data = sdram2.Bank1[n];
+	sdram2p.Bank1[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
+	data = sdram2.Bank2[n];
+	sdram2p.Bank2[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
+	data = sdram2.Bank3[n];
+	sdram2p.Bank3[n] = {28'h0, ^data[31:24], ^data[23:16], ^data[15:8], ^data[7:0] };
+   end
+
+end
+endtask
+
 
