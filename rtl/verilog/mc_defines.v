@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_defines.v,v 1.5 2001-12-11 02:47:19 rudi Exp $
+//  $Id: mc_defines.v,v 1.6 2001-12-12 06:35:15 rudi Exp $
 //
-//  $Date: 2001-12-11 02:47:19 $
-//  $Revision: 1.5 $
+//  $Date: 2001-12-12 06:35:15 $
+//  $Revision: 1.6 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.5  2001/12/11 02:47:19  rudi
+//
+//               - Made some changes not to expect clock during reset ...
+//
 //               Revision 1.4  2001/11/29 02:16:28  rudi
 //
 //
@@ -122,7 +126,7 @@
 //
 
 // This will be defined by the run script for my test bench ...
-`define RUDIS_TB 1
+//`define RUDIS_TB 1
 
 // Defines which chip select is used for Power On booting
 
