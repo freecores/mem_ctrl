@@ -37,16 +37,25 @@
 
 //  CVS Log
 //
-//  $Id: mc_top.v,v 1.5 2001-11-29 02:16:28 rudi Exp $
+//  $Id: mc_top.v,v 1.6 2001-12-21 05:09:30 rudi Exp $
 //
-//  $Date: 2001-11-29 02:16:28 $
-//  $Revision: 1.5 $
+//  $Date: 2001-12-21 05:09:30 $
+//  $Revision: 1.6 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.5  2001/11/29 02:16:28  rudi
+//
+//
+//               - More Synthesis cleanup, mostly for speed
+//               - Several bug fixes
+//               - Changed code to avoid auto-precharge and
+//                 burst-terminate combinations (apparently illegal ?)
+//                 Now we will do a manual precharge ...
+//
 //               Revision 1.4  2001/09/10 13:44:17  rudi
 //               *** empty log message ***
 //
@@ -287,6 +296,7 @@ mc_rf		u0(
 		.mc_vpen(	mc_vpen_pad_o 	),
 		.fs(		fs		),
 		.cs_le(		cs_le		),
+		.cs_le_d(	cs_le_d		),
 		.cs_need_rfr(	cs_need_rfr	),
 		.ref_int(	ref_int		),
 		.rfr_ps_val(	rfr_ps_val	),
@@ -409,6 +419,7 @@ mc_timing	u5(
 		.lmr_req(	lmr_req		),
 		.lmr_ack(	lmr_ack		),
 		.cs_le(		cs_le		),
+		.cs_le_d(	cs_le_d		),
 		.cmd_a10(	cmd_a10		),
 		.row_sel(	row_sel		),
 		.next_adr(	next_adr	),
@@ -500,6 +511,7 @@ mc_mem_if	u7(
 		.mc_c_oe_d(	mc_c_oe_d	),
 		.mc_ack_r(	mc_ack_r	),
 		.oe_(		oe_		),
+		.wb_cyc_i(	wb_cyc_i 	),
 		.wb_stb_i(	wb_stb_i 	),
 		.wb_sel_i(	wb_sel_i	),
 		.wb_cycle(	wb_cycle	),

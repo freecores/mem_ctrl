@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_timing.v,v 1.6 2001-12-11 02:47:19 rudi Exp $
+//  $Id: mc_timing.v,v 1.7 2001-12-21 05:09:30 rudi Exp $
 //
-//  $Date: 2001-12-11 02:47:19 $
-//  $Revision: 1.6 $
+//  $Date: 2001-12-21 05:09:30 $
+//  $Revision: 1.7 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.6  2001/12/11 02:47:19  rudi
+//
+//               - Made some changes not to expect clock during reset ...
+//
 //               Revision 1.5  2001/11/29 02:16:28  rudi
 //
 //
@@ -128,7 +132,7 @@ module mc_timing(clk, rst,
 		mc_c_oe, mc_ack,
 
 		// Register File Interface
-		csc, tms, cs, lmr_req, lmr_ack, cs_le,
+		csc, tms, cs, lmr_req, lmr_ack, cs_le_d, cs_le,
 
 		// Address Select Signals
 		cmd_a10, row_sel, next_adr, page_size,
@@ -189,6 +193,7 @@ input	[7:0]	cs;
 input		lmr_req;
 output		lmr_ack;
 output		cs_le;
+output		cs_le_d;
 
 // Address Select Signals
 input	[10:0]	page_size;
@@ -321,6 +326,7 @@ reg		err_d;
 wire		err;
 reg		cmd_a10;
 reg		lmr_ack;
+reg		lmr_ack_d;
 reg		row_sel;
 reg		oe_;
 reg		oe_d;
@@ -330,7 +336,7 @@ reg		cke_d;
 reg		cke_;
 reg		init_ack;
 reg		dv;
-reg		rfr_ack;
+reg		rfr_ack_d;
 reg		mc_adsc;
 reg		mc_adv;
 
@@ -435,6 +441,11 @@ assign single_write = tms[9] | (tms[2:0] == 3'h0);
 // Misc Logic
 //
 reg		cs_le_r1;
+
+always @(posedge clk)
+	lmr_ack <= #1 lmr_ack_d;
+
+assign rfr_ack = rfr_ack_r;
 
 always @(posedge clk)
 	cs_le_r <= #1 cs_le_r1;
@@ -562,6 +573,8 @@ always @(posedge clk)
 	wb_wait_r <= #1 wb_wait_r2;
 
 // Indicates when the row_same and bank_open lookups are done
+reg	lookup_ready1a;
+
 always @(posedge clk or posedge rst)
 	if(rst)		lookup_ready1 <= #1 1'b0;
 	else		lookup_ready1 <= #1 cs_le & wb_stb_i;
@@ -626,10 +639,11 @@ always @(posedge clk or posedge rst)
 
 always @(posedge clk or posedge rst)
 	if(rst)		rfr_ack_r <= #1 1'b0;
-	else		rfr_ack_r <= #1 rfr_ack;
+	else		rfr_ack_r <= #1 rfr_ack_d;
 
 // Suspend Select Logic
-assign susp_sel = susp_sel_r | susp_sel_set;
+//assign susp_sel = susp_sel_r | susp_sel_set;
+assign susp_sel = susp_sel_r;
 
 always @(posedge clk or posedge rst)
 	if(rst)			susp_sel_r <= #1 1'b0;
@@ -648,7 +662,7 @@ wire	[31:0]	tms_x;
 
 // FIX_ME
 // Hard wire worst case or make it programmable ???
-assign tms_x = (rfr_ack | rfr_ack_r | susp_sel | !mc_c_oe) ? 32'hffff_ffff : tms;
+assign tms_x = (rfr_ack_d | rfr_ack_r | susp_sel | !mc_c_oe) ? 32'hffff_ffff : tms;
 
 always @(posedge clk)
 	if(tmr2_ld_tscsto)	timer2 <= #1 tms_x[24:16];
@@ -839,8 +853,8 @@ always @(state or cs_a or cs_le or cs_le_r or
 
 	mem_ack_d = 1'b0;
 	err_d = 1'b0;
-	rfr_ack = 1'b0;
-	lmr_ack = 1'b0;
+	rfr_ack_d = 1'b0;
+	lmr_ack_d = 1'b0;
 	init_ack = 1'b0;
 
 	ir_cnt_dec = 1'b0;
@@ -884,7 +898,7 @@ always @(state or cs_a or cs_le or cs_le_r or
 
 		if(rfr_req)
 		   begin
-			rfr_ack = 1'b1;
+			rfr_ack_d = 1'b1;
 			next_state = PRECHARGE;
 		   end
 		else
@@ -896,7 +910,7 @@ always @(state or cs_a or cs_le or cs_le_r or
 		else
 		if(lmr_req & lookup_ready2)
 		   begin
-			lmr_ack = 1'b1;
+			lmr_ack_d = 1'b1;
 			cs_le_d = 1'b1;
 			next_state = LMR0;
 		   end
@@ -999,8 +1013,10 @@ always @(state or cs_a or cs_le or cs_le_r or
 	      begin
 		if(tmr2_done & (!wb_wait | !wb_cycle) )
 		   begin
-			cs_le_d = 1'b1;
-			if(cs_le_r)	next_state = IDLE;
+			//cs_le_d = 1'b1;
+			//if(cs_le_r)	next_state = IDLE;
+			cs_le_d = wb_stb_i;
+			if(cs_le_r | !wb_stb_i)	next_state = IDLE;
 		   end
 	      end
 
@@ -1324,7 +1340,7 @@ always @(state or cs_a or cs_le or cs_le_r or
 		cmd = `MC_CMD_PC;
 		if(rfr_ack_r)
 		   begin
-			rfr_ack = 1'b1;
+			rfr_ack_d = 1'b1;
 			cmd_a10 = `MC_ALL_BANKS;
 			bank_clr_all = 1'b1;
 		   end
@@ -1339,7 +1355,7 @@ always @(state or cs_a or cs_le or cs_le_r or
 
 	   PRECHARGE_W:
 	      begin
-		rfr_ack = rfr_ack_r;
+		rfr_ack_d = rfr_ack_r;
 		if(tmr_done)	
 		   begin
 			if(rfr_ack_r)	next_state = REFR;
@@ -1534,7 +1550,7 @@ always @(state or cs_a or cs_le or cs_le_r or
 		cs_le_d = 1'b1;
 		cmd = `MC_CMD_ARFR;
 		tmr_ld_trfc = 1'b1;
-		rfr_ack = 1'b1;
+		rfr_ack_d = 1'b1;
 		if(cmd_asserted)
 		   begin
 			susp_sel_clr = 1'b1;
@@ -1544,7 +1560,7 @@ always @(state or cs_a or cs_le or cs_le_r or
 
 	   LMR0:
 	      begin
-		lmr_ack = 1'b1;
+		lmr_ack_d = 1'b1;
 		cmd = `MC_CMD_PC;
 		cmd_a10 = `MC_ALL_BANKS;
 		bank_clr_all = 1'b1;
@@ -1554,7 +1570,7 @@ always @(state or cs_a or cs_le or cs_le_r or
 
 	   LMR1:
 	      begin
-		lmr_ack = 1'b1;
+		lmr_ack_d = 1'b1;
 		if(tmr_done)			next_state = LMR2;
 	      end
 
@@ -1563,7 +1579,7 @@ always @(state or cs_a or cs_le or cs_le_r or
 		bank_clr_all = 1'b1;
 		cmd = `MC_CMD_LMR;
 		tmr_ld_trfc = 1'b1;
-		lmr_ack = 1'b1;
+		lmr_ack_d = 1'b1;
 		if(cmd_asserted)		next_state = IDLE_T;
 	      end
 
@@ -1669,7 +1685,7 @@ always @(state or cs_a or cs_le or cs_le_r or
 	      begin		// Enter Self refresh Mode
 		cke_d = 1'b0;
 		cmd = `MC_CMD_ARFR;
-		rfr_ack = 1'b1;
+		rfr_ack_d = 1'b1;
 		if(cmd_asserted)
 		   begin
 			next_state = SUSP4;

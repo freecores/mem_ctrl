@@ -38,16 +38,25 @@
 
 //  CVS Log
 //
-//  $Id: mc_mem_if.v,v 1.4 2001-11-29 02:16:28 rudi Exp $
+//  $Id: mc_mem_if.v,v 1.5 2001-12-21 05:09:29 rudi Exp $
 //
-//  $Date: 2001-11-29 02:16:28 $
-//  $Revision: 1.4 $
+//  $Date: 2001-12-21 05:09:29 $
+//  $Revision: 1.5 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.4  2001/11/29 02:16:28  rudi
+//
+//
+//               - More Synthesis cleanup, mostly for speed
+//               - Several bug fixes
+//               - Changed code to avoid auto-precharge and
+//                 burst-terminate combinations (apparently illegal ?)
+//                 Now we will do a manual precharge ...
+//
 //               Revision 1.3  2001/09/24 00:38:21  rudi
 //
 //               Changed Reset to be active high and async.
@@ -99,8 +108,9 @@ module mc_mem_if(clk, rst, mc_clk, mc_br, mc_bg,
 		mc_br_r, mc_bg_d, mc_data_od, mc_dp_od, mc_addr_d, mc_ack_r,
 		we_, ras_, cas_, cke_, mc_adsc_d, mc_adv_d, cs_en, rfr_ack,
 		cs_need_rfr, lmr_sel, spec_req_cs, cs, fs, data_oe, susp_sel,
-		suspended_o, oe_, wb_stb_i, wb_sel_i, wb_cycle, wr_cycle,
-		mc_data_ir, mc_data_i, mc_dp_i, mc_sts_ir, mc_sts_i, mc_zz_o
+		suspended_o, oe_, wb_cyc_i, wb_stb_i, wb_sel_i, wb_cycle,
+		wr_cycle, mc_data_ir, mc_data_i, mc_dp_i, mc_sts_ir, mc_sts_i,
+		mc_zz_o
 		);
 // Memory Interface
 input		clk;
@@ -138,6 +148,7 @@ input	[31:0]	mc_data_od;
 input	[3:0]	mc_dp_od;
 input	[23:0]	mc_addr_d;
 output		mc_ack_r;
+input		wb_cyc_i;
 input		wb_stb_i;
 input	[3:0]	wb_sel_i;
 input		wb_cycle;
@@ -233,12 +244,16 @@ always @(posedge mc_clk)
 	mc_addr <= #1 mc_addr_d;
 
 always @(posedge clk)
-	if(wb_stb_i)
+	if(wb_cyc_i & wb_stb_i)
 		mc_dqm_r <= #1 wb_sel_i;
+
+reg	[3:0]	mc_dqm_r2;
+always @(posedge clk)
+		mc_dqm_r2 <= #1 mc_dqm_r;
 
 always @(posedge mc_clk)
 	mc_dqm <= #1	susp_sel ? 4'hf :
-			data_oe ? ~mc_dqm_r :
+			data_oe ? ~mc_dqm_r2 :
 			(wb_cycle & !wr_cycle) ? 4'h0 : 4'hf;
 
 always @(posedge mc_clk or posedge rst)

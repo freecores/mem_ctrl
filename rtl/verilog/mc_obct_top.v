@@ -38,16 +38,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_obct_top.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
+//  $Id: mc_obct_top.v,v 1.3 2001-12-21 05:09:29 rudi Exp $
 //
-//  $Date: 2001-08-10 08:16:21 $
-//  $Revision: 1.2 $
+//  $Date: 2001-12-21 05:09:29 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/08/10 08:16:21  rudi
+//
+//               - Changed IO names to be more clear.
+//               - Uniquifyed define names to be core specific.
+//               - Removed "Refresh Early" configuration
+//
 //               Revision 1.1  2001/07/29 07:34:41  rudi
 //
 //
@@ -191,6 +197,7 @@ always @(posedge clk)
 				(cs[2] & any_bank_open_2) | (cs[3] & any_bank_open_3) |
 				(cs[4] & any_bank_open_4) | (cs[5] & any_bank_open_5) |
 				(cs[6] & any_bank_open_6) | (cs[7] & any_bank_open_7);
+
 
 ////////////////////////////////////////////////////////////////////
 //

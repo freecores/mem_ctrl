@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_rf.v,v 1.6 2001-12-11 02:47:19 rudi Exp $
+//  $Id: mc_rf.v,v 1.7 2001-12-21 05:09:29 rudi Exp $
 //
-//  $Date: 2001-12-11 02:47:19 $
-//  $Revision: 1.6 $
+//  $Date: 2001-12-21 05:09:29 $
+//  $Revision: 1.7 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.6  2001/12/11 02:47:19  rudi
+//
+//               - Made some changes not to expect clock during reset ...
+//
 //               Revision 1.5  2001/11/29 02:16:28  rudi
 //
 //
@@ -115,7 +119,7 @@ module mc_rf(clk, rst,
 	sp_csc, sp_tms, cs,
 	mc_data_i, mc_sts, mc_vpen, fs,
 
-	cs_le, cs_need_rfr, ref_int, rfr_ps_val, init_req,
+	cs_le_d, cs_le, cs_need_rfr, ref_int, rfr_ps_val, init_req,
 	init_ack, lmr_req, lmr_ack,
 	spec_req_cs
 	);
@@ -149,6 +153,7 @@ input		mc_sts;
 output		mc_vpen;
 output		fs;
 
+input		cs_le_d;
 input		cs_le;
 
 output	[7:0]	cs_need_rfr;	// Indicates which chip selects have SDRAM
@@ -347,7 +352,7 @@ always @(posedge clk or posedge rst)
 always @(posedge clk or posedge rst)
 	if(rst)		csc <= #1 32'h0;
 	else
-	if(cs_le & wb_cyc_i & wb_stb_i)
+	if(cs_le_d & wb_cyc_i & wb_stb_i)
 	   begin
 		if(cs0)	csc <= #1 csc0;
 		else
@@ -368,7 +373,7 @@ always @(posedge clk or posedge rst)
 always @(posedge clk or posedge rst)
 	if(rst)		tms <= #1 32'hffff_ffff;
 	else
-	if((cs_le | rf_we) & wb_cyc_i & wb_stb_i)
+	if((cs_le_d | rf_we) & wb_cyc_i & wb_stb_i)
 	   begin
 		if(cs0)	tms <= #1 tms0;
 		else
@@ -389,7 +394,7 @@ always @(posedge clk or posedge rst)
 always @(posedge clk or posedge rst)
 	if(rst)				sp_csc <= #1 32'h0;
 	else
-	if(cs_le & wb_cyc_i & wb_stb_i)
+	if(cs_le_d & wb_cyc_i & wb_stb_i)
 	   begin
 		if(spec_req_cs[0])	sp_csc <= #1 csc0;
 		else
@@ -410,7 +415,7 @@ always @(posedge clk or posedge rst)
 always @(posedge clk or posedge rst)
 	if(rst)				sp_tms <= #1 32'hffff_ffff;
 	else
-	if((cs_le | rf_we) & wb_cyc_i & wb_stb_i)
+	if((cs_le_d | rf_we) & wb_cyc_i & wb_stb_i)
 	   begin
 		if(spec_req_cs[0])	sp_tms <= #1 tms0;
 		else
