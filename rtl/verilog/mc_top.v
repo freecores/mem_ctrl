@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_top.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
+//  $Id: mc_top.v,v 1.3 2001-09-02 02:28:28 rudi Exp $
 //
-//  $Date: 2001-08-10 08:16:21 $
-//  $Revision: 1.2 $
+//  $Date: 2001-09-02 02:28:28 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/08/10 08:16:21  rudi
+//
+//               - Changed IO names to be more clear.
+//               - Uniquifyed define names to be core specific.
+//               - Removed "Refresh Early" configuration
+//
 //               Revision 1.1  2001/07/29 07:34:41  rudi
 //
 //
@@ -162,8 +168,6 @@ wire		mem_wb_ack_o, rf_wb_ack_o;
 
 // --------------------------------------
 // Suspend Resume Interface
-//wire		susp_req;
-//wire		resume_req;
 wire		susp_sel;
 reg		mc_zz_pad_o;
 
@@ -237,6 +241,8 @@ wire		mc_adv_d;
 wire		mc_ack_r;
 wire		err;
 
+wire		mc_rp_d;
+
 /*
 // synopsys translate_off
 initial		// FOR RICHARD TEST BENCH ONLY ...	FIX_ME
@@ -255,7 +261,7 @@ initial		// FOR RICHARD TEST BENCH ONLY ...	FIX_ME
 // Misc Logic
 //
 
-assign mc_rp_pad_o_ = !suspended_o & !fs;
+assign mc_rp_d = !suspended_o & !fs;
 
 always @(posedge mc_clk_i)
 	mc_zz_pad_o <= #1 suspended_o;	
@@ -381,8 +387,10 @@ mc_refresh	u4(
  
 mc_timing	u5(
 		.clk(		clk_i		),
+		.mc_clk(	mc_clk_i	),
 		.rst(		rst_i		),
 		.wb_cyc_i(	wb_cyc_i	),
+		.wb_stb_i(	wb_stb_i	),
 		.wb_we_i(	wb_we_i		),
 		.wb_read_go(	wb_read_go	),
 		.wb_write_go(	wb_write_go	),
@@ -411,7 +419,7 @@ mc_timing	u5(
 		.wr_cycle(	wr_cycle	),
 		.csc(		csc_s		),
 		.tms(		tms_s		),
-		.cs(		cs		),
+		.cs(		obct_cs		),	// FIX_ME
 		.lmr_req(	lmr_req		),
 		.lmr_ack(	lmr_ack		),
 		.cs_le(		cs_le		),
@@ -456,6 +464,8 @@ mc_wb_if	u6(
 mc_mem_if	u7(
 		.clk(		clk_i		),
 		.rst(		rst_i		),
+		.mc_rp(		mc_rp_pad_o_	),
+		.mc_rp_d(	mc_rp_d		),
 		.mc_clk(	mc_clk_i	),
 		.mc_br(		mc_br_pad_i	),
 		.mc_bg(		mc_bg_pad_o	),

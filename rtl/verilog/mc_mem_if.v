@@ -38,16 +38,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_mem_if.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_mem_if.v,v 1.2 2001-09-02 02:28:28 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-09-02 02:28:28 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.3  2001/06/14 01:57:37  rudi
 //
 //
@@ -81,7 +87,7 @@
 module mc_mem_if(clk, rst, mc_clk, mc_br, mc_bg, 
 		mc_addr, mc_data_o, mc_dp_o, mc_data_oe,
 		mc_dqm, mc_oe_, mc_we_, mc_cas_, mc_ras_, mc_cke_, mc_cs_,
-		mc_adsc_, mc_adv_, mc_ack,
+		mc_adsc_, mc_adv_, mc_ack, mc_rp, mc_rp_d,
 		mc_br_r, mc_bg_d, mc_data_od, mc_dp_od, mc_addr_d, mc_ack_r, we_,
 		ras_, cas_, cke_, mc_adsc_d, mc_adv_d, cs_en, rfr_ack, cs_need_rfr,
 		lmr_sel, spec_req_cs, cs, data_oe, susp_sel, mc_c_oe, oe_,
@@ -107,6 +113,7 @@ output	[7:0]	mc_cs_;
 output		mc_adsc_;
 output		mc_adv_;
 input		mc_ack;
+output		mc_rp;
 
 // Internal Interface
 output		mc_br_r;
@@ -135,6 +142,7 @@ input	[7:0]	spec_req_cs;
 input	[7:0]	cs;
 input		mc_adsc_d;
 input		mc_adv_d;
+input		mc_rp_d;
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -158,6 +166,7 @@ reg		mc_adsc_;
 reg		mc_adv_;
 reg		mc_br_r;
 reg		mc_ack_r;
+reg		mc_rp;
 
 //integer	n;
 
@@ -165,6 +174,9 @@ reg		mc_ack_r;
 //
 // Misc Logic
 //
+
+always @(posedge mc_clk)
+	mc_rp <= #1 mc_rp_d;
 
 always @(posedge mc_clk)
 	mc_br_r <= #1 mc_br;
