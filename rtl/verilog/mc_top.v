@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_top.v,v 1.3 2001-09-02 02:28:28 rudi Exp $
+//  $Id: mc_top.v,v 1.4 2001-09-10 13:44:17 rudi Exp $
 //
-//  $Date: 2001-09-02 02:28:28 $
-//  $Revision: 1.3 $
+//  $Date: 2001-09-10 13:44:17 $
+//  $Revision: 1.4 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.3  2001/09/02 02:28:28  rudi
+//
+//               Many fixes for minor bugs that showed up in gate level simulations.
+//
 //               Revision 1.2  2001/08/10 08:16:21  rudi
 //
 //               - Changed IO names to be more clear.
@@ -291,7 +295,7 @@ mc_rf		u0(
 		.wb_addr_i(	wb_addr_i	),
 		.wb_we_i(	wb_we_i		),
 		.wb_cyc_i(	wb_cyc_i	),
-		.wb_stb_i(	wb_stb_i	),
+		.wb_stb_i(	wb_stb_i 	),
 		.wb_ack_o(	rf_wb_ack_o	),
 		.wb_err_o(	rf_wb_err_o	),
 		.wp_err(	wp_err		),
@@ -320,7 +324,7 @@ mc_adr_sel	u1(
 		.clk(		clk_i		),
 		.csc(		csc_s		),
 		.tms(		tms_s		),
-		.wb_stb_i(	wb_stb_i	),
+		.wb_stb_i(	wb_stb_i 	),
 		.wb_ack_o(	mem_wb_ack_o	),
 		.wb_addr_i(	wb_addr_i	),
 		.wb_write_go(	wb_write_go	),
@@ -390,7 +394,7 @@ mc_timing	u5(
 		.mc_clk(	mc_clk_i	),
 		.rst(		rst_i		),
 		.wb_cyc_i(	wb_cyc_i	),
-		.wb_stb_i(	wb_stb_i	),
+		.wb_stb_i(	wb_stb_i 	),
 		.wb_we_i(	wb_we_i		),
 		.wb_read_go(	wb_read_go	),
 		.wb_write_go(	wb_write_go	),
@@ -419,7 +423,7 @@ mc_timing	u5(
 		.wr_cycle(	wr_cycle	),
 		.csc(		csc_s		),
 		.tms(		tms_s		),
-		.cs(		obct_cs		),	// FIX_ME
+		.cs(		obct_cs		),
 		.lmr_req(	lmr_req		),
 		.lmr_ack(	lmr_ack		),
 		.cs_le(		cs_le		),
@@ -449,7 +453,7 @@ mc_wb_if	u6(
 		.rst(		rst_i		),
 		.wb_addr_i(	wb_addr_i	),
 		.wb_cyc_i(	wb_cyc_i	),
-		.wb_stb_i(	wb_stb_i	),
+		.wb_stb_i(	wb_stb_i 	),
 		.wb_we_i(	wb_we_i		),
 		.wb_ack_o(	mem_wb_ack_o	),
 		.wb_err(	wb_err_o	),
@@ -505,7 +509,7 @@ mc_mem_if	u7(
 		.mc_c_oe(	mc_coe_pad_coe_o),
 		.mc_ack_r(	mc_ack_r	),
 		.oe_(		oe_		),
-		.wb_stb_i(	wb_stb_i	),
+		.wb_stb_i(	wb_stb_i 	),
 		.wb_sel_i(	wb_sel_i	),
 		.wb_cycle(	wb_cycle	),
 		.wr_cycle(	wr_cycle	)

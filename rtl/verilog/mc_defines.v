@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_defines.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
+//  $Id: mc_defines.v,v 1.3 2001-09-10 13:44:17 rudi Exp $
 //
-//  $Date: 2001-08-10 08:16:21 $
-//  $Revision: 1.2 $
+//  $Date: 2001-09-10 13:44:17 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/08/10 08:16:21  rudi
+//
+//               - Changed IO names to be more clear.
+//               - Uniquifyed define names to be core specific.
+//               - Removed "Refresh Early" configuration
+//
 //               Revision 1.1  2001/07/29 07:34:41  rudi
 //
 //
@@ -88,7 +94,8 @@
 // the internal register file is selected.
 // This should be a simple address decoder. "wb_addr_i" is the
 // WISHBONE address bus (32 bits wide).
-`define	MC_REG_SEL		(wb_addr_i[31:29] == 3'h7)
+//`define	MC_REG_SEL		(wb_addr_i[31:29] == 3'h6)
+`define	MC_REG_SEL		(wb_addr_i[31:29] == 3'b011)
 
 // This define selects how the WISHBONE interface determines if
 // the memory is selected.
@@ -102,7 +109,7 @@
 //
 
 // Defines which chip select is used for Power On booting
-`define MC_DEF_SEL		3'h3
+`define MC_DEF_SEL		3'h1
 
 // Defines the default (reset) TMS value for the DEF_SEL chip select
 `define	MC_DEF_POR_TMS 	32'hffff_ffff
@@ -113,12 +120,12 @@
 // Define how many Chip Selects to Implement
 //
 `define MC_HAVE_CS1	1
-`define MC_HAVE_CS2	1
-`define MC_HAVE_CS3	1
-`define MC_HAVE_CS4	1
-`define MC_HAVE_CS5	1
-`define MC_HAVE_CS6	1
-`define MC_HAVE_CS7	1
+//`define MC_HAVE_CS2	1
+//`define MC_HAVE_CS3	1
+//`define MC_HAVE_CS4	1
+//`define MC_HAVE_CS5	1
+//`define MC_HAVE_CS6	1
+//`define MC_HAVE_CS7	1
 
 
 /////////////////////////////////////////////////////////////////////
