@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_rf.v,v 1.3 2001-09-24 00:38:21 rudi Exp $
+//  $Id: mc_rf.v,v 1.4 2001-10-04 03:19:37 rudi Exp $
 //
-//  $Date: 2001-09-24 00:38:21 $
-//  $Revision: 1.3 $
+//  $Date: 2001-10-04 03:19:37 $
+//  $Revision: 1.4 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.3  2001/09/24 00:38:21  rudi
+//
+//               Changed Reset to be active high and async.
+//
 //               Revision 1.2  2001/08/10 08:16:21  rudi
 //
 //               - Changed IO names to be more clear.
@@ -221,26 +225,26 @@ assign wb_err_o = 1'b0;
 always @(posedge clk)
 	if(wb_cyc_i & wb_stb_i & `MC_REG_SEL & !wb_we_i)
 	case(wb_addr_i[6:2])		// synopsys full_case parallel_case
-	   5'h0:	rf_dout <= #1 csr;
-	   5'h1:	rf_dout <= #1 poc;
-	   5'h2:	rf_dout <= #1 csc_mask;
+	   5'd0:	rf_dout <= #1 csr;
+	   5'd1:	rf_dout <= #1 poc;
+	   5'd2:	rf_dout <= #1 csc_mask;
 
-	   5'h4:	rf_dout <= #1 csc0;
-	   5'h5:	rf_dout <= #1 tms0;
-	   5'h6:	rf_dout <= #1 csc1;
-	   5'h7:	rf_dout <= #1 tms1;
-	   5'h8:	rf_dout <= #1 csc2;
-	   5'h9:	rf_dout <= #1 tms2;
-	   5'h10:	rf_dout <= #1 csc3;
-	   5'h11:	rf_dout <= #1 tms3;
-	   5'h12:	rf_dout <= #1 csc4;
-	   5'h13:	rf_dout <= #1 tms4;
-	   5'h14:	rf_dout <= #1 csc5;
-	   5'h15:	rf_dout <= #1 tms5;
-	   5'h16:	rf_dout <= #1 csc6;
-	   5'h17:	rf_dout <= #1 tms6;
-	   5'h18:	rf_dout <= #1 csc7;
-	   5'h19:	rf_dout <= #1 tms7;
+	   5'd4:	rf_dout <= #1 csc0;
+	   5'd5:	rf_dout <= #1 tms0;
+	   5'd6:	rf_dout <= #1 csc1;
+	   5'd7:	rf_dout <= #1 tms1;
+	   5'd8:	rf_dout <= #1 csc2;
+	   5'd9:	rf_dout <= #1 tms2;
+	   5'd10:	rf_dout <= #1 csc3;
+	   5'd11:	rf_dout <= #1 tms3;
+	   5'd12:	rf_dout <= #1 csc4;
+	   5'd13:	rf_dout <= #1 tms4;
+	   5'd14:	rf_dout <= #1 csc5;
+	   5'd15:	rf_dout <= #1 tms5;
+	   5'd16:	rf_dout <= #1 csc6;
+	   5'd17:	rf_dout <= #1 tms6;
+	   5'd18:	rf_dout <= #1 csc7;
+	   5'd19:	rf_dout <= #1 tms7;
 	endcase
 
 ////////////////////////////////////////////////////////////////////
@@ -287,7 +291,8 @@ always @(posedge clk)
 	ack_r <= #1 `MC_REG_SEL & wb_cyc_i & wb_stb_i & !ack_r & !wb_ack_o;
 
 always @(posedge clk)
-	wb_ack_o <= #1 ack_r;
+	//wb_ack_o <= #1 (ack_r & wb_we_i) | (`MC_REG_SEL & wb_cyc_i & wb_stb_i & !wb_we_i & !wb_ack_o) ;
+	wb_ack_o <= #1 `MC_REG_SEL & wb_cyc_i & wb_stb_i & !wb_ack_o;
 
 ////////////////////////////////////////////////////////////////////
 //
