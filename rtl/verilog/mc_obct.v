@@ -38,16 +38,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_obct.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_obct.v,v 1.2 2001-09-24 00:38:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-09-24 00:38:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.3  2001/06/12 15:19:49  rudi
 //
 //
@@ -108,8 +114,8 @@ reg		row_same;
 // Bank Open/Closed Tracking
 //
 
-always @(posedge clk or negedge rst)
-	if(!rst)				bank0_open <= #1 1'b0;
+always @(posedge clk or posedge rst)
+	if(rst)					bank0_open <= #1 1'b0;
 	else
 	if((bank_adr == 2'h0) & bank_set)	bank0_open <= #1 1'b1;
 	else
@@ -117,8 +123,8 @@ always @(posedge clk or negedge rst)
 	else
 	if(bank_clr_all)			bank0_open <= #1 1'b0;
 
-always @(posedge clk or negedge rst)
-	if(!rst)				bank1_open <= #1 1'b0;
+always @(posedge clk or posedge rst)
+	if(rst)					bank1_open <= #1 1'b0;
 	else
 	if((bank_adr == 2'h1) & bank_set)	bank1_open <= #1 1'b1;
 	else
@@ -126,8 +132,8 @@ always @(posedge clk or negedge rst)
 	else
 	if(bank_clr_all)			bank1_open <= #1 1'b0;
 
-always @(posedge clk or negedge rst)
-	if(!rst)				bank2_open <= #1 1'b0;
+always @(posedge clk or posedge rst)
+	if(rst)					bank2_open <= #1 1'b0;
 	else
 	if((bank_adr == 2'h2) & bank_set)	bank2_open <= #1 1'b1;
 	else
@@ -135,8 +141,8 @@ always @(posedge clk or negedge rst)
 	else
 	if(bank_clr_all)			bank2_open <= #1 1'b0;
 
-always @(posedge clk or negedge rst)
-	if(!rst)				bank3_open <= #1 1'b0;
+always @(posedge clk or posedge rst)
+	if(rst)					bank3_open <= #1 1'b0;
 	else
 	if((bank_adr == 2'h3) & bank_set)	bank3_open <= #1 1'b1;
 	else

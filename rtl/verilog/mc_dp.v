@@ -38,16 +38,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_dp.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
+//  $Id: mc_dp.v,v 1.3 2001-09-24 00:38:21 rudi Exp $
 //
-//  $Date: 2001-08-10 08:16:21 $
-//  $Revision: 1.2 $
+//  $Date: 2001-09-24 00:38:21 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/08/10 08:16:21  rudi
+//
+//               - Changed IO names to be more clear.
+//               - Uniquifyed define names to be core specific.
+//               - Removed "Refresh Early" configuration
+//
 //               Revision 1.1  2001/07/29 07:34:41  rudi
 //
 //
@@ -146,7 +152,7 @@ always @(posedge clk)
 always @(posedge clk)
 	mc_data_del <= #1 {mc_dp_i, mc_data_i};
 
-assign rd_fifo_clr = rst & wb_cyc_i;
+assign rd_fifo_clr = !rst & wb_cyc_i;
 assign re = mem_wb_ack_o & wb_read_go;
 
 mc_rd_fifo u0(

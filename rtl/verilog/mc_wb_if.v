@@ -38,16 +38,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_wb_if.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
+//  $Id: mc_wb_if.v,v 1.3 2001-09-24 00:38:21 rudi Exp $
 //
-//  $Date: 2001-08-10 08:16:21 $
-//  $Revision: 1.2 $
+//  $Date: 2001-09-24 00:38:21 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/08/10 08:16:21  rudi
+//
+//               - Changed IO names to be more clear.
+//               - Uniquifyed define names to be core specific.
+//               - Removed "Refresh Early" configuration
+//
 //               Revision 1.1  2001/07/29 07:34:41  rudi
 //
 //
@@ -126,8 +132,8 @@ reg		rmw_en;
 
 assign mem_sel = `MC_MEM_SEL;
 
-always @(posedge clk or negedge rst)
-	if(!rst)		rmw_en <= #1 1'b0;
+always @(posedge clk or posedge rst)
+	if(rst)			rmw_en <= #1 1'b0;
 	else
 	if(mem_ack)		rmw_en <= #1 1'b1;
 	else
@@ -160,8 +166,8 @@ assign wb_write_go   = !rmw & write_go_r1 & wb_cyc_i &
 assign wb_first_set = mem_sel & wb_cyc_i & wb_stb_i & !(read_go_r | write_go_r);
 assign wb_first = wb_first_set | (wb_first_r & !mem_ack & !wb_err);
 
-always @(posedge clk or negedge rst)
-	if(!rst)		wb_first_r <= #1 1'b0;
+always @(posedge clk or posedge rst)
+	if(rst)			wb_first_r <= #1 1'b0;
 	else
 	if(wb_first_set)	wb_first_r <= #1 1'b1;
 	else

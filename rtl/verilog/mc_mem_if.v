@@ -38,16 +38,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_mem_if.v,v 1.2 2001-09-02 02:28:28 rudi Exp $
+//  $Id: mc_mem_if.v,v 1.3 2001-09-24 00:38:21 rudi Exp $
 //
-//  $Date: 2001-09-02 02:28:28 $
-//  $Revision: 1.2 $
+//  $Date: 2001-09-24 00:38:21 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/09/02 02:28:28  rudi
+//
+//               Many fixes for minor bugs that showed up in gate level simulations.
+//
 //               Revision 1.1  2001/07/29 07:34:41  rudi
 //
 //
@@ -187,8 +191,9 @@ always @(posedge mc_clk)
 always @(posedge mc_clk)
 	mc_bg <= #1 mc_bg_d;
 
-always @(posedge mc_clk)
-	mc_data_oe <= #1 data_oe & !susp_sel & mc_c_oe & rst;
+always @(posedge mc_clk or posedge rst)
+	if(rst)		mc_data_oe <= #1 1'b0;
+	else		mc_data_oe <= #1 data_oe & !susp_sel & mc_c_oe;
 
 always @(posedge mc_clk)
 	mc_data_o <= #1 mc_data_od;
@@ -208,8 +213,8 @@ always @(posedge mc_clk)
 			data_oe ? ~mc_dqm_r :
 			(wb_cycle & !wr_cycle) ? 4'h0 : 4'hf;
 
-always @(posedge mc_clk or negedge rst)
-	if(!rst)	mc_oe_ <= #1 1'b1;
+always @(posedge mc_clk or posedge rst)
+	if(rst)		mc_oe_ <= #1 1'b1;
 	else		mc_oe_ <= #1 oe_ | susp_sel;
 
 always @(posedge mc_clk)
@@ -233,8 +238,8 @@ always @(posedge mc_clk)
 			));
 */
 
-always @(posedge mc_clk or negedge rst)
-	if(!rst)	mc_cs_[0] <= #1 1'b1;
+always @(posedge mc_clk or posedge rst)
+	if(rst)		mc_cs_[0] <= #1 1'b1;
 	else
 	mc_cs_[0] <= #1 ~(cs_en & (
 				(rfr_ack | susp_sel) ? cs_need_rfr[0] :
@@ -242,8 +247,8 @@ always @(posedge mc_clk or negedge rst)
 				cs[0]
 			));
 
-always @(posedge mc_clk or negedge rst)
-	if(!rst)	mc_cs_[1] <= #1 1'b1;
+always @(posedge mc_clk or posedge rst)
+	if(rst)		mc_cs_[1] <= #1 1'b1;
 	else
 	   mc_cs_[1] <= #1 ~(cs_en & (
 				(rfr_ack | susp_sel) ? cs_need_rfr[1] :
@@ -251,8 +256,8 @@ always @(posedge mc_clk or negedge rst)
 				cs[1]
 			));
 
-always @(posedge mc_clk or negedge rst)
-	if(!rst)	mc_cs_[2] <= #1 1'b1;
+always @(posedge mc_clk or posedge rst)
+	if(rst)		mc_cs_[2] <= #1 1'b1;
 	else
 	   mc_cs_[2] <= #1 ~(cs_en & (
 				(rfr_ack | susp_sel) ? cs_need_rfr[2] :
@@ -260,8 +265,8 @@ always @(posedge mc_clk or negedge rst)
 				cs[2]
 			));
 
-always @(posedge mc_clk or negedge rst)
-	if(!rst)	mc_cs_[3] <= #1 1'b1;
+always @(posedge mc_clk or posedge rst)
+	if(rst)		mc_cs_[3] <= #1 1'b1;
 	else
 	   mc_cs_[3] <= #1 ~(cs_en & (
 				(rfr_ack | susp_sel) ? cs_need_rfr[3] :
@@ -269,8 +274,8 @@ always @(posedge mc_clk or negedge rst)
 				cs[3]
 			));
 
-always @(posedge mc_clk or negedge rst)
-	if(!rst)	mc_cs_[4] <= #1 1'b1;
+always @(posedge mc_clk or posedge rst)
+	if(rst)		mc_cs_[4] <= #1 1'b1;
 	else
 	   mc_cs_[4] <= #1 ~(cs_en & (
 				(rfr_ack | susp_sel) ? cs_need_rfr[4] :
@@ -278,8 +283,8 @@ always @(posedge mc_clk or negedge rst)
 				cs[4]
 			));
 
-always @(posedge mc_clk or negedge rst)
-	if(!rst)	mc_cs_[5] <= #1 1'b1;
+always @(posedge mc_clk or posedge rst)
+	if(rst)		mc_cs_[5] <= #1 1'b1;
 	else
 	   mc_cs_[5] <= #1 ~(cs_en & (
 				(rfr_ack | susp_sel) ? cs_need_rfr[5] :
@@ -287,8 +292,8 @@ always @(posedge mc_clk or negedge rst)
 				cs[5]
 			));
 
-always @(posedge mc_clk or negedge rst)
-	if(!rst)	mc_cs_[6] <= #1 1'b1;
+always @(posedge mc_clk or posedge rst)
+	if(rst)		mc_cs_[6] <= #1 1'b1;
 	else
 	   mc_cs_[6] <= #1 ~(cs_en & (
 				(rfr_ack | susp_sel) ? cs_need_rfr[6] :
@@ -296,8 +301,8 @@ always @(posedge mc_clk or negedge rst)
 				cs[6]
 			));
 
-always @(posedge mc_clk or negedge rst)
-	if(!rst)	mc_cs_[7] <= #1 1'b1;
+always @(posedge mc_clk or posedge rst)
+	if(rst)		mc_cs_[7] <= #1 1'b1;
 	else
 	   mc_cs_[7] <= #1 ~(cs_en & (
 				(rfr_ack | susp_sel) ? cs_need_rfr[7] :

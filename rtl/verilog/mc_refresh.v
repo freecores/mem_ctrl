@@ -38,16 +38,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_refresh.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_refresh.v,v 1.2 2001-09-24 00:38:21 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2001-09-24 00:38:21 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.3  2001/06/12 15:19:49  rudi
 //
 //
@@ -139,8 +145,8 @@ This is for a 200 Mhz WISHBONE Bus.
 always @(posedge clk)
 	rfr_en <= #1 |cs_need_rfr;
 
-always @(posedge clk or negedge rst)
-	if(!rst)			ps_cnt <= #1 8'h0;
+always @(posedge clk or posedge rst)
+	if(rst)				ps_cnt <= #1 8'h0;
 	else	
 	if(ps_cnt_clr)			ps_cnt <= #1 8'h0;
 	else	
@@ -159,8 +165,8 @@ always @(posedge clk)
 always @(posedge clk)
 	rfr_ce <= #1 ps_cnt_clr;
 
-always @(posedge clk or negedge rst)
-	if(!rst)		rfr_cnt <= #1 8'h0;
+always @(posedge clk or posedge rst)
+	if(rst)			rfr_cnt <= #1 8'h0;
 	else
 	if(rfr_ack)		rfr_cnt <= #1 8'h0;
 	else
@@ -178,8 +184,8 @@ always @(posedge clk)
 	   3'h7: rfr_clr <= #1 &rfr_cnt[7:0] & rfr_early;
 	endcase
 
-always @(posedge clk or negedge rst)
-	if(!rst)		rfr_req <= #1 1'b0;
+always @(posedge clk or posedge rst)
+	if(rst)			rfr_req <= #1 1'b0;
 	else
 	if(rfr_ack)		rfr_req <= #1 1'b0;
 	else

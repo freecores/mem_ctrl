@@ -37,16 +37,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_timing.v,v 1.3 2001-09-02 02:28:28 rudi Exp $
+//  $Id: mc_timing.v,v 1.4 2001-09-24 00:38:21 rudi Exp $
 //
-//  $Date: 2001-09-02 02:28:28 $
-//  $Revision: 1.3 $
+//  $Date: 2001-09-24 00:38:21 $
+//  $Revision: 1.4 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.3  2001/09/02 02:28:28  rudi
+//
+//               Many fixes for minor bugs that showed up in gate level simulations.
+//
 //               Revision 1.2  2001/08/10 08:16:21  rudi
 //
 //               - Changed IO names to be more clear.
@@ -415,12 +419,12 @@ always @(posedge clk)
 	rsts <= #1 rsts1;
 
 // Control Signals Output Enable
-always @(posedge clk)
-	if(!rst)	mc_c_oe <= #1 1'b0;
+always @(posedge clk or posedge rst)
+	if(rst)		mc_c_oe <= #1 1'b0;
 	else		mc_c_oe <= #1 mc_c_oe_d;
 
-always @(posedge clk or negedge rsts)
-	if(!rsts)	mc_le <= #1 1'b0;
+always @(posedge clk or posedge rsts)
+	if(rsts)	mc_le <= #1 1'b0;
 	else		mc_le <= #1 ~mc_le;
 
 always @(posedge clk)
@@ -514,24 +518,24 @@ always @(posedge clk)
 	lookup_ready2 <= #1 lookup_ready1;
 
 // Keep Track if it is a SDRAM write cycle
-always @(posedge clk or negedge rst)
-	if(!rst)	wr_cycle <= #1 1'b0;
+always @(posedge clk or posedge rst)
+	if(rst)		wr_cycle <= #1 1'b0;
 	else
 	if(wr_set)	wr_cycle <= #1 1'b1;
 	else
 	if(wr_clr)	wr_cycle <= #1 1'b0;
 
 // Track when a cycle is *still* active
-always @(posedge clk or negedge rst)
-	if(!rst)			wb_cycle <= #1 1'b0;
+always @(posedge clk or posedge rst)
+	if(rst)				wb_cycle <= #1 1'b0;
 	else
 	if(wb_cycle_set)		wb_cycle <= #1 1'b1;
 	else
 	if(!wb_cyc_i)			wb_cycle <= #1 1'b0;
 
 // Track ack's for read cycles 
-always @(posedge clk or negedge rst)
-	if(!rst)				ack_cnt <= #1 4'h0;
+always @(posedge clk or posedge rst)
+	if(rst)					ack_cnt <= #1 4'h0;
 	else
 	if(!wb_read_go & !wb_write_go)		ack_cnt <= #1 4'h0;
 	else
@@ -563,8 +567,8 @@ always @(posedge clk)
 // Suspend Select Logic
 assign susp_sel = susp_sel_r | susp_sel_set;
 
-always @(posedge clk or negedge rst)
-	if(!rst)		susp_sel_r <= #1 0;
+always @(posedge clk or posedge rst)
+	if(rst)			susp_sel_r <= #1 0;
 	else
 	if(susp_sel_set)	susp_sel_r <= #1 1'b1;
 	else
@@ -610,9 +614,9 @@ wire	[3:0]	twrp;
 assign twrp = tms_x[16:15] + tms_x[23:20];
 
 // SDRAM Memories timing tracker
-always @(posedge clk or negedge rst)
+always @(posedge clk or posedge rst)
 `ifdef MC_POR_DELAY
-	if(!rst)		timer <= #1 `MC_POR_DELAY_VAL ;
+	if(rst)			timer <= #1 `MC_POR_DELAY_VAL ;
 	else
 `endif
 	if(tmr_ld_twr2)		timer <= #1 { 4'h0, tms_x[15:12] };
@@ -683,11 +687,11 @@ always @(posedge clk)
 // Main State Machine
 //
 
-always @(posedge clk or negedge rst)
+always @(posedge clk or posedge rst)
 `ifdef MC_POR_DELAY
-	if(!rst)	state <= #1 POR;
+	if(rst)		state <= #1 POR;
 `else
-	if(!rst)	state <= #1 IDLE;
+	if(rst)		state <= #1 IDLE;
 `endif
 	else		state <= #1 next_state;
 

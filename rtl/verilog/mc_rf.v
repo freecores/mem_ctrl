@@ -37,16 +37,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_rf.v,v 1.2 2001-08-10 08:16:21 rudi Exp $
+//  $Id: mc_rf.v,v 1.3 2001-09-24 00:38:21 rudi Exp $
 //
-//  $Date: 2001-08-10 08:16:21 $
-//  $Revision: 1.2 $
+//  $Date: 2001-09-24 00:38:21 $
+//  $Revision: 1.3 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.2  2001/08/10 08:16:21  rudi
+//
+//               - Changed IO names to be more clear.
+//               - Uniquifyed define names to be core specific.
+//               - Removed "Refresh Early" configuration
+//
 //               Revision 1.1  2001/07/29 07:34:41  rudi
 //
 //
@@ -179,7 +185,6 @@ wire		wp_err0, wp_err1, wp_err2, wp_err3;
 wire		wp_err4, wp_err5, wp_err6, wp_err7;
 reg		wp_err;
 
-
 wire		lmr_req7, lmr_req6, lmr_req5, lmr_req4;
 wire		lmr_req3, lmr_req2, lmr_req1, lmr_req0;
 wire		lmr_ack7, lmr_ack6, lmr_ack5, lmr_ack4;
@@ -245,14 +250,14 @@ always @(posedge clk)
 
 assign rf_we = `MC_REG_SEL & wb_we_i & wb_cyc_i & wb_stb_i;
 
-always @(posedge clk or negedge rst)
-	if(!rst)	csr_r2 <= #1 8'h0;
+always @(posedge clk or posedge rst)
+	if(rst)		csr_r2 <= #1 8'h0;
 	else
 	if(rf_we & (wb_addr_i[6:2] == 5'h0) )
 			csr_r2 <= #1 wb_data_i[31:24];
 
-always @(posedge clk or negedge rst)
-	if(!rst)	csr_r[10:1] <= #1 10'h0;
+always @(posedge clk or posedge rst)
+	if(rst)		csr_r[10:1] <= #1 10'h0;
 	else
 	if(rf_we & (wb_addr_i[6:2] == 5'h0) )
 			csr_r[10:1] <= #1 wb_data_i[10:1];
@@ -264,14 +269,14 @@ assign mc_vpen = csr_r[1];
 assign fs = csr_r[2];
 assign rfr_ps_val = csr_r2[7:0];
 
-always @(posedge clk or negedge rst)
-	if(!rst)	csc_mask_r <= #1 11'h7ff;
+always @(posedge clk or posedge rst)
+	if(rst)		csc_mask_r <= #1 11'h7ff;
 	else
 	if(rf_we & (wb_addr_i[6:2] == 5'h2) )
 			csc_mask_r <= #1 wb_data_i[10:0];
 
 always @(posedge clk)
-	if(!rst)	poc <= #1 mc_data_i;
+	if(rst)		poc <= #1 mc_data_i;
 
 ////////////////////////////////////////////////////////////////////
 //
