@@ -11,8 +11,9 @@
 ////                                                             ////
 /////////////////////////////////////////////////////////////////////
 ////                                                             ////
-//// Copyright (C) 2000 Rudolf Usselmann                         ////
-////                    rudi@asics.ws                            ////
+//// Copyright (C) 2000-2002 Rudolf Usselmann                    ////
+////                         www.asics.ws                        ////
+////                         rudi@asics.ws                       ////
 ////                                                             ////
 //// This source file may be used and distributed without        ////
 //// restriction provided that this copyright statement is not   ////
@@ -37,16 +38,21 @@
 
 //  CVS Log
 //
-//  $Id: mc_timing.v,v 1.7 2001-12-21 05:09:30 rudi Exp $
+//  $Id: mc_timing.v,v 1.8 2002-01-21 13:08:52 rudi Exp $
 //
-//  $Date: 2001-12-21 05:09:30 $
-//  $Revision: 1.7 $
+//  $Date: 2002-01-21 13:08:52 $
+//  $Revision: 1.8 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.7  2001/12/21 05:09:30  rudi
+//
+//               - Fixed combinatorial loops in synthesis
+//               - Fixed byte select bug
+//
 //               Revision 1.6  2001/12/11 02:47:19  rudi
 //
 //               - Made some changes not to expect clock during reset ...
@@ -130,6 +136,7 @@ module mc_timing(clk, rst,
 		cs_en, wb_cycle, wr_cycle,
 		mc_br, mc_bg, mc_adsc, mc_adv,
 		mc_c_oe, mc_ack,
+		not_mem_cyc,
 
 		// Register File Interface
 		csc, tms, cs, lmr_req, lmr_ack, cs_le_d, cs_le,
@@ -185,6 +192,7 @@ output		mc_adsc;
 output		mc_adv;
 output		mc_c_oe;
 input		mc_ack;
+input		not_mem_cyc;
 
 // Register File Interface
 input	[31:0]	csc;
@@ -577,11 +585,11 @@ reg	lookup_ready1a;
 
 always @(posedge clk or posedge rst)
 	if(rst)		lookup_ready1 <= #1 1'b0;
-	else		lookup_ready1 <= #1 cs_le & wb_stb_i;
+	else		lookup_ready1 <= #1 cs_le & wb_cyc_i & wb_stb_i;
 
 always @(posedge clk or posedge rst)
 	if(rst)		lookup_ready2 <= #1 1'b0;
-	else		lookup_ready2 <= #1 lookup_ready1 & wb_stb_i;
+	else		lookup_ready2 <= #1 lookup_ready1 & wb_cyc_i & wb_stb_i;
 
 // Keep Track if it is a SDRAM write cycle
 always @(posedge clk or posedge rst)
@@ -597,7 +605,7 @@ always @(posedge clk or posedge rst)
 	else
 	if(wb_cycle_set)		wb_cycle <= #1 1'b1;
 	else
-	if(!wb_cyc_i)			wb_cycle <= #1 1'b0;
+	if(!wb_cyc_i | not_mem_cyc)	wb_cycle <= #1 1'b0;
 
 // Thses two signals are used to signal that no wishbone cycle is in
 // progress. Need to register them to avoid a very long combinatorial
@@ -642,7 +650,6 @@ always @(posedge clk or posedge rst)
 	else		rfr_ack_r <= #1 rfr_ack_d;
 
 // Suspend Select Logic
-//assign susp_sel = susp_sel_r | susp_sel_set;
 assign susp_sel = susp_sel_r;
 
 always @(posedge clk or posedge rst)
@@ -888,13 +895,14 @@ always @(state or cs_a or cs_le or cs_le_r or
 `endif
 	   IDLE:
 	      begin
-		cs_le_d = wb_stb_first | lmr_req;
+		//cs_le_d = wb_stb_first | lmr_req;
+		cs_le_d = wb_stb_first;
+
 		burst_cnt_ld = 1'b1;
 		wr_clr = 1'b1;
 
 		if(mem_type == `MC_MEM_TYPE_SCS)	tmr2_ld_tscsto = 1'b1;
 		if(mem_type == `MC_MEM_TYPE_SRAM)	tmr2_ld_tsrdv = 1'b1;
-
 
 		if(rfr_req)
 		   begin
@@ -1013,10 +1021,8 @@ always @(state or cs_a or cs_le or cs_le_r or
 	      begin
 		if(tmr2_done & (!wb_wait | !wb_cycle) )
 		   begin
-			//cs_le_d = 1'b1;
-			//if(cs_le_r)	next_state = IDLE;
-			cs_le_d = wb_stb_i;
-			if(cs_le_r | !wb_stb_i)	next_state = IDLE;
+			cs_le_d = wb_cycle;
+			if(cs_le_r | !wb_cycle)	next_state = IDLE;
 		   end
 	      end
 
@@ -1140,6 +1146,7 @@ always @(state or cs_a or cs_le or cs_le_r or
 
 	   SRAM_RD4:	// DESELECT
 	      begin
+		if(wb_cycle)	cs_le_d = 1'b1;	// For RMW
 		mc_adsc = 1'b1;
 		next_state = IDLE;
 	      end

@@ -12,8 +12,9 @@
 ////                                                             ////
 /////////////////////////////////////////////////////////////////////
 ////                                                             ////
-//// Copyright (C) 2000 Rudolf Usselmann                         ////
-////                    rudi@asics.ws                            ////
+//// Copyright (C) 2000-2002 Rudolf Usselmann                    ////
+////                         www.asics.ws                        ////
+////                         rudi@asics.ws                       ////
 ////                                                             ////
 //// This source file may be used and distributed without        ////
 //// restriction provided that this copyright statement is not   ////
@@ -38,16 +39,21 @@
 
 //  CVS Log
 //
-//  $Id: mc_mem_if.v,v 1.5 2001-12-21 05:09:29 rudi Exp $
+//  $Id: mc_mem_if.v,v 1.6 2002-01-21 13:08:52 rudi Exp $
 //
-//  $Date: 2001-12-21 05:09:29 $
-//  $Revision: 1.5 $
+//  $Date: 2002-01-21 13:08:52 $
+//  $Revision: 1.6 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.5  2001/12/21 05:09:29  rudi
+//
+//               - Fixed combinatorial loops in synthesis
+//               - Fixed byte select bug
+//
 //               Revision 1.4  2001/11/29 02:16:28  rudi
 //
 //

@@ -11,8 +11,9 @@
 ////                                                             ////
 /////////////////////////////////////////////////////////////////////
 ////                                                             ////
-//// Copyright (C) 2000 Rudolf Usselmann                         ////
-////                    rudi@asics.ws                            ////
+//// Copyright (C) 2000-2002 Rudolf Usselmann                    ////
+////                         www.asics.ws                        ////
+////                         rudi@asics.ws                       ////
 ////                                                             ////
 //// This source file may be used and distributed without        ////
 //// restriction provided that this copyright statement is not   ////
@@ -37,16 +38,19 @@
 
 //  CVS Log
 //
-//  $Id: mc_defines.v,v 1.6 2001-12-12 06:35:15 rudi Exp $
+//  $Id: mc_defines.v,v 1.7 2002-01-21 13:08:52 rudi Exp $
 //
-//  $Date: 2001-12-12 06:35:15 $
-//  $Revision: 1.6 $
+//  $Date: 2002-01-21 13:08:52 $
+//  $Revision: 1.7 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.6  2001/12/12 06:35:15  rudi
+//               *** empty log message ***
+//
 //               Revision 1.5  2001/12/11 02:47:19  rudi
 //
 //               - Made some changes not to expect clock during reset ...
@@ -111,7 +115,6 @@
 // the internal register file is selected.
 // This should be a simple address decoder. "wb_addr_i" is the
 // WISHBONE address bus (32 bits wide).
-//`define	MC_REG_SEL		(wb_addr_i[31:29] == 3'h6)
 `define	MC_REG_SEL		(wb_addr_i[31:29] == 3'b011)
 
 // This define selects how the WISHBONE interface determines if
@@ -126,6 +129,7 @@
 //
 
 // This will be defined by the run script for my test bench ...
+// Alternatively force here for synthesis ...
 //`define RUDIS_TB 1
 
 // Defines which chip select is used for Power On booting

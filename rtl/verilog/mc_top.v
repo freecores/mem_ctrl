@@ -11,8 +11,9 @@
 ////                                                             ////
 /////////////////////////////////////////////////////////////////////
 ////                                                             ////
-//// Copyright (C) 2000 Rudolf Usselmann                         ////
-////                    rudi@asics.ws                            ////
+//// Copyright (C) 2000-2002 Rudolf Usselmann                    ////
+////                         www.asics.ws                        ////
+////                         rudi@asics.ws                       ////
 ////                                                             ////
 //// This source file may be used and distributed without        ////
 //// restriction provided that this copyright statement is not   ////
@@ -37,16 +38,21 @@
 
 //  CVS Log
 //
-//  $Id: mc_top.v,v 1.6 2001-12-21 05:09:30 rudi Exp $
+//  $Id: mc_top.v,v 1.7 2002-01-21 13:08:52 rudi Exp $
 //
-//  $Date: 2001-12-21 05:09:30 $
-//  $Revision: 1.6 $
+//  $Date: 2002-01-21 13:08:52 $
+//  $Revision: 1.7 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.6  2001/12/21 05:09:30  rudi
+//
+//               - Fixed combinatorial loops in synthesis
+//               - Fixed byte select bug
+//
 //               Revision 1.5  2001/11/29 02:16:28  rudi
 //
 //
@@ -269,6 +275,16 @@ assign lmr_sel = lmr_ack | init_ack;
 assign tms_s = lmr_sel ? sp_tms : tms;
 assign csc_s = lmr_sel ? sp_csc : csc;
 
+
+wire		not_mem_cyc;
+
+assign	not_mem_cyc = wb_cyc_i & wb_stb_i & !( `MC_MEM_SEL );
+
+reg		mem_ack_r;
+
+always @(posedge clk_i)
+	mem_ack_r <= #1 mem_ack;
+
 ////////////////////////////////////////////////////////////////////
 //
 // Modules
@@ -312,7 +328,8 @@ mc_adr_sel	u1(
 		.csc(		csc_s		),
 		.tms(		tms_s		),
 		.wb_stb_i(	wb_stb_i 	),
-		.wb_ack_o(	wb_ack_o	),
+		//.wb_ack_o(	wb_ack_o	),
+		.wb_ack_o(	mem_ack_r	),
 		.wb_addr_i(	wb_addr_i	),
 		.wb_we_i(	wb_we_i		),
 		.wb_write_go(	wb_write_go	),
@@ -353,7 +370,8 @@ mc_dp		u3(
 		.wb_cyc_i(	wb_cyc_i	),
 		.wb_stb_i(	wb_stb_i	),
 		.mem_ack(	mem_ack 	),
-		.wb_ack_o(	wb_ack_o 	),
+		//.wb_ack_o(	wb_ack_o 	),
+		.wb_ack_o(	mem_ack_r 	),
 		.wb_we_i(	wb_we_i		),
 		.wb_data_i(	wb_data_i	),
 		.wb_data_o(	mem_dout	),
@@ -401,6 +419,7 @@ mc_timing	u5(
 		.mc_br(		mc_br_r		),
 		.mc_bg(		mc_bg_d		),
 		.mc_ack(	mc_ack_r	),
+		.not_mem_cyc(	not_mem_cyc	),
 		.data_oe(	data_oe		),
 		.oe_(		oe_		),
 		.we_(		we_		),

@@ -12,8 +12,9 @@
 ////                                                             ////
 /////////////////////////////////////////////////////////////////////
 ////                                                             ////
-//// Copyright (C) 2000 Rudolf Usselmann                         ////
-////                    rudi@asics.ws                            ////
+//// Copyright (C) 2000-2002 Rudolf Usselmann                    ////
+////                         www.asics.ws                        ////
+////                         rudi@asics.ws                       ////
 ////                                                             ////
 //// This source file may be used and distributed without        ////
 //// restriction provided that this copyright statement is not   ////
@@ -38,16 +39,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_refresh.v,v 1.3 2001-12-11 02:47:19 rudi Exp $
+//  $Id: mc_refresh.v,v 1.4 2002-01-21 13:08:52 rudi Exp $
 //
-//  $Date: 2001-12-11 02:47:19 $
-//  $Revision: 1.3 $
+//  $Date: 2002-01-21 13:08:52 $
+//  $Revision: 1.4 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.3  2001/12/11 02:47:19  rudi
+//
+//               - Made some changes not to expect clock during reset ...
+//
 //               Revision 1.2  2001/09/24 00:38:21  rudi
 //
 //               Changed Reset to be active high and async.

@@ -12,8 +12,9 @@
 ////                                                             ////
 /////////////////////////////////////////////////////////////////////
 ////                                                             ////
-//// Copyright (C) 2000 Rudolf Usselmann                         ////
-////                    rudi@asics.ws                            ////
+//// Copyright (C) 2000-2002 Rudolf Usselmann                    ////
+////                         www.asics.ws                        ////
+////                         rudi@asics.ws                       ////
 ////                                                             ////
 //// This source file may be used and distributed without        ////
 //// restriction provided that this copyright statement is not   ////
@@ -38,16 +39,22 @@
 
 //  CVS Log
 //
-//  $Id: mc_incn_r.v,v 1.1 2001-07-29 07:34:41 rudi Exp $
+//  $Id: mc_incn_r.v,v 1.2 2002-01-21 13:08:52 rudi Exp $
 //
-//  $Date: 2001-07-29 07:34:41 $
-//  $Revision: 1.1 $
+//  $Date: 2002-01-21 13:08:52 $
+//  $Revision: 1.2 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.1  2001/07/29 07:34:41  rudi
+//
+//
+//               1) Changed Directory Structure
+//               2) Fixed several minor bugs
+//
 //               Revision 1.1  2001/06/12 15:18:47  rudi
 //
 //

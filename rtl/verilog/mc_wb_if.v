@@ -12,8 +12,9 @@
 ////                                                             ////
 /////////////////////////////////////////////////////////////////////
 ////                                                             ////
-//// Copyright (C) 2000 Rudolf Usselmann                         ////
-////                    rudi@asics.ws                            ////
+//// Copyright (C) 2000-2002 Rudolf Usselmann                    ////
+////                         www.asics.ws                        ////
+////                         rudi@asics.ws                       ////
 ////                                                             ////
 //// This source file may be used and distributed without        ////
 //// restriction provided that this copyright statement is not   ////
@@ -38,16 +39,20 @@
 
 //  CVS Log
 //
-//  $Id: mc_wb_if.v,v 1.5 2001-12-11 02:47:19 rudi Exp $
+//  $Id: mc_wb_if.v,v 1.6 2002-01-21 13:08:52 rudi Exp $
 //
-//  $Date: 2001-12-11 02:47:19 $
-//  $Revision: 1.5 $
+//  $Date: 2002-01-21 13:08:52 $
+//  $Revision: 1.6 $
 //  $Author: rudi $
 //  $Locker:  $
 //  $State: Exp $
 //
 // Change History:
 //               $Log: not supported by cvs2svn $
+//               Revision 1.5  2001/12/11 02:47:19  rudi
+//
+//               - Made some changes not to expect clock during reset ...
+//
 //               Revision 1.4  2001/11/29 02:16:28  rudi
 //
 //
@@ -211,15 +216,19 @@ always @(posedge clk or posedge rst)
 // WB Ack
 //
 
+wire	wb_err_d;
+
+// Ack no longer asserted when wb_err is asserted
 always @(posedge clk or posedge rst)
 	if(rst)	wb_ack_o <= #1 1'b0;
-	else	wb_ack_o <= #1 `MC_MEM_SEL ? mem_ack :
+	else	wb_ack_o <= #1 `MC_MEM_SEL ? mem_ack & !wb_err_d :
 				`MC_REG_SEL & wb_cyc_i & wb_stb_i & !wb_ack_o;
+
+assign wb_err_d = wb_cyc_i & wb_stb_i & (par_err | err | wp_err);
 
 always @(posedge clk or posedge rst)
 	if(rst)	wb_err <= #1 1'b0;
-	else	wb_err <= #1 wb_cyc_i & wb_stb_i & `MC_MEM_SEL &
-				(par_err | err | wp_err) & !wb_err;
+	else	wb_err <= #1 `MC_MEM_SEL & wb_err_d & !wb_err;
 
 ////////////////////////////////////////////////////////////////////
 //
